@@ -1,207 +1,72 @@
-library("maptools")
-library("raster")
 library("ncf")
 library("xtable")
 library("gbm")
-library("ggplot2")
 library("doMC")
 library("dismo")
-library("rgdal")
-library("rgeos")
-library("RPostgreSQL")
 
-drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
-con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
-
-species.table <- read.delim("/home/casey/Research/Projects/SDMs/Data/species_list.csv", header=T, sep=",")
-species.table <- species.table[1:6,]
-
-plotPal <- c("#8dd3c7", "#e5e500", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#969696", "#bc80bd")
-
-sdm.colors = colorRampPalette(c("white","red"))
-sdm.bw = colorRampPalette(c("white","black"))
-
-setwd('/home/casey/Research/Projects/SDMs/Data/')
-
-ascii.files <- list.files(pattern = "\\.asc$")
-
-for(i in list(c('ncols',1),c('nrows',2),c('x.corner',3),c('y.corner',4))) {
-  assign(i[1],as.numeric(scan(ascii.files[1],nlines=1,skip=as.numeric(i[2])-1,what="complex",quiet=T)[2]))
-}
-
-ascii.names <- unlist(strsplit(ascii.files,"\\."))[(1:(2*(length(ascii.files)))*2)-1][1:length(ascii.files)]
-
-################
-
-victoria <- readShapePoly("/home/casey/Research/GIS_Repo/VICTORIA/VIC_GDA9455_ADMIN_STATE.shp")
-
-r <- raster(ncol=822, nrow=563, xmn=-58000, xmx=764000, ymn=5661000, ymx=6224000)
-
-vic.rst <- rasterize(victoria, r, 'UFI')
-
-clip <- extent(-58000, 764000, 5661000, 6224000)
-
-for (i in 1:length(ascii.files)) {
-  temp <- raster(ascii.files[i])
-  temp <- crop(temp, clip)
-  assign(ascii.names[i],temp * vic.rst)
-}
-
-vars <- stack(mget(ascii.names))
-
-rm(list = ascii.names)
-rm(vic.rst)
-
-vars.cor <- layerStats(vars, 'pearson', na.rm=TRUE)
-
-#write.csv(vars.cor[[1]], file = "/home/casey/Research/Projects/SDMs/Data/vars_cor.csv")
-
-################
-
-#extract environmental variables and write model data files
-data0 <- read.csv("/home/casey/Research/Projects/SDMs/Data/bg_0.csv", header=T, sep=",")
-colnames(data0) <- c("x","y","occ")
-for(i in 1:nrow(species.table)) {
-  #data1 <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".csv",sep=""), header=T, sep=",")
-  data1 <- dbGetQuery(con,paste0("
-      SELECT
-        ST_X(pts.geom) AS X, ST_Y(pts.geom) AS Y, CAST(1 AS INTEGER) AS OCC
-      FROM
-        gis_victoria.vic_gda9455_fauna_vba AS pts, gis_victoria.vic_gda9455_admin_state AS poly
-      WHERE
-        ST_contains(poly.geom, pts.geom)
-      AND
-        pts.countacc = 'Accurate (A)'
-      AND
-        pts.startdate >= '1/1/2000 0:00:00'
-      AND
-        scientific = '",species.table[i,4],"'
-      GROUP BY
-        pts.geom, pts.northing, pts.easting;
-  "))
-  data <- rbind(data1,data0)
-  samples.df <- extract(vars,data[,1:2])
-  data <- cbind(data,samples.df)
-  data <- na.omit(data)
-  write.csv(data, file = paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), row.names=FALSE)
-}
-
+species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 
 #construct metadata for all species
 for(i in 1:nrow(species.table)) {
 assign(paste(species.table[i,3],".data",sep=""),read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=","))
 }
 
-brt_data <- data.frame("SPP"=rep(NA,nrow(species.table)),"SO_N"=rep(NA,nrow(species.table)),"SO_P"=rep(NA,nrow(species.table)),"SO_A"=rep(NA,nrow(species.table)))
-for(i in 1:nrow(species.table)) {
-  brt_data[i,"SPP"] <- toupper(paste(species.table[i,3]))
-  data <- get(paste(species.table[i,3],".data",sep=""))
-  brt_data[i,"SO_N"] <- nrow(data)
-  brt_data[i,"SO_P"] <- nrow(data[data$occ == 1, ])
-  brt_data[i,"SO_A"] <- nrow(data[data$occ == 0, ])
-  rm(data)
-}
-write.csv(brt_data, file = "/home/casey/Research/Projects/SDMs/Data/brt_data_meta.csv", row.names=FALSE)
-
-
 #fit BRT models for all species
 registerDoMC(detectCores() - 1)
 
   brt.models <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
-    data <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=",")
+    data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
     set.seed(123)
     model <- gbm.step(data = data, gbm.x = c(4:21), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
     #model <- gbm.step(data = data, gbm.x = c(4:43), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
     model
   }
-
-#fit Random Forest models for all species
-# registerDoMC(detectCores() - 1)
-# 
-# rf.models <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
-#   data <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=",")
-#   set.seed(123)
-#   model2 <- randomForest(x=data[4:21], y=data[[3]], ntree=3850)
-#   model2
-# }
-
-
-#fit Maxent models for all species
-# registerDoMC(detectCores() - 1)
-# 
-#   max.models <- foreach(i = 1:nrow(species.table), .packages = c("dismo","rJava")) %dopar% {
-#     data <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=",")
-#     data.bg <- data.frame("X"=x0[,1], "Y"=x0[,2])
-#     data.pres <- data.frame("X"=data$X[data[,3]==1], "Y"=data$Y[data[,3]==1])
-#     model <- maxent(vars, data.pres, a=data.bg, args=c("-P", "noautofeature", "nothreshold", "noproduct", -t soil, "noaddsamplestobackground","noremoveduplicates"))
-#     model
-#   }
-    
-#egk.ll <- SpatialPoints(cbind(raw.data$decimallongitude, raw.data$decimallatitude), proj4string=CRS("+init=epsg:4283"))
-#egk.UTM <- data.frame(spTransform(egk.ll, CRS("+init=epsg:28355")))
-#names(egk.UTM) <- c('X','Y')
-#egk.raster <- rasterize(egk.UTM, r)
-#egk.raster[egk.raster>=1] <- 1
-#egk1 <- rasterToPoints(egk.raster)
-#egk1 <- data.frame("X"=egk1[,1], "Y"=egk1[,2])
-#egk0 <- data.frame("X"=x0[,1], "Y"=x0[,2])
-
-#make predictions for all species (Maxent)
-# registerDoMC(detectCores() - 1)
-# 
-#   max.models.output <- foreach(i = 1:nrow(species.table), .packages = c("dismo","doParallel","raster","rJava")) %dopar% {
-#     data <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=",")
-#     data.bg <- data.frame("X"=x0[,1], "Y"=x0[,2])
-#     data.pres <- data.frame("X"=data$X[data[,3]==1], "Y"=data$Y[data[,3]==1])
-#     model <- max.models[[i]]
-#     max.preds <- predict(model, vars)
-#     writeRaster(max.preds, filename=paste("/home/casey/Research/Projects/SDMs/Data/Preds/",toupper(species.table[i,3]),".asc",sep=""), format="ascii", overwrite=TRUE)
-#     #plot(max.preds, col=sdm.colors(100), axes=F, box=FALSE)
-#     summary(model)
-#   }
-
+save(brt.models, file = "data/brt_models")
+#load(file = "data/brt_models")
+  
 #simplify BRT models and build predictor lists for all species
 registerDoMC(detectCores() - 1)
 
 predlists <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo"), .export=("gbm.step")) %dopar% {
-  data <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
   set.seed(123)
   model.simp <- gbm.simplify(brt.models[[i]])
   preds.no <- which.min(model.simp$deviance.summary$mean)
   model.simp[['pred.list']][[which.min(model.simp$deviance.summary$mean)]]
 }
-save(predlists, file = "/home/casey/Research/Projects/SDMs/Data/predlists")
-#load(file = "/home/casey/Research/Projects/SDMs/Data/predlists")
+save(predlists, file = "data/predlists")
+#load(file = "data/predlists")
 
 
-# for(i in 1:nrow(species.table)) {
-#   data <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=",")
-#   cor <- cor(data[,predlists[[i]]])
-#   write.csv(cor, file = paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".cor",sep=""), row.names=FALSE)
-# }
+for(i in 1:nrow(species.table)) {
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  cor <- cor(data[,predlists[[i]]])
+  write.csv(cor, file = paste("data/",species.table[i,2],".cor",sep=""), row.names=FALSE)
+}
 
 
 #fit final BRT models for all species
 registerDoMC(detectCores() - 1)
 
 brt.models.simp <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
-  data <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
   set.seed(123)
   model <- gbm.step(data = data, gbm.x = predlists[[i]], gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
   model
 }
-save(brt.models.simp, file = "/home/casey/Research/Projects/SDMs/Data/brt_models")
-#load(file = "/home/casey/Research/Projects/SDMs/Data/brt_models")
+save(brt.models.simp, file = "data/brt_models")
+#load(file = "data/brt_models")
+
 
 #make predictions for all species
 registerDoMC(detectCores() - 1)
 
 brt.models.output <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo","raster")) %dopar% {
-  data <- read.delim(paste("/home/casey/Research/Projects/SDMs/Data/",species.table[i,3],".data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
   model <- brt.models.simp[[i]]
   #model <- brt.models[[i]]
   model.preds <- predict(vars, model, n.trees=model[["gbm.call"]][["best.trees"]], type="response")
-  writeRaster(model.preds, filename=paste("/home/casey/Research/Projects/SDMs/Data/Preds/",toupper(species.table[i,3]),".asc",sep=""), format="ascii", overwrite=TRUE)
+  writeRaster(model.preds, filename=paste("data/Preds/",toupper(species.table[i,3]),".asc",sep=""), format="ascii", overwrite=TRUE)
   plot(model.preds, col=sdm.colors(100), axes=F, box=FALSE)
   #summary(model)
 }
