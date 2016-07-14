@@ -2,10 +2,6 @@ require("maptools")
 require("raster")
 require("ncf")
 require("xtable")
-require("gbm")
-require("ggplot2")
-require("doMC")
-require("dismo")
 require("rgdal")
 require("rgeos")
 require("RPostgreSQL")
@@ -15,22 +11,6 @@ con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres1
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 
-plotPal <- c("#8dd3c7", "#e5e500", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#969696", "#bc80bd")
-
-sdm.colors = colorRampPalette(c("white","red"))
-sdm.bw = colorRampPalette(c("white","black"))
-
-setwd('data/')
-
-ascii.files <- list.files(pattern = "\\.asc$")
-
-for(i in list(c('ncols',1),c('nrows',2),c('x.corner',3),c('y.corner',4))) {
-  assign(i[1],as.numeric(scan(ascii.files[1],nlines=1,skip=as.numeric(i[2])-1,what="complex",quiet=T)[2]))
-}
-
-ascii.names <- unlist(strsplit(ascii.files,"\\."))[(1:(2*(length(ascii.files)))*2)-1][1:length(ascii.files)]
-
-################
 
 grid.files <- list.files(path='data/grids') #Create vector of filenames
 
@@ -48,8 +28,7 @@ for (i in 1:length(grid.files)) {
 }
 vars <- stack(mget(grid.names)) #Combine all maps to single stack
 
-vars.cor <- layerStats(vars, 'pearson', na.rm=TRUE)
-
+#vars.cor <- layerStats(vars, 'pearson', na.rm=TRUE)
 #write.csv(vars.cor[[1]], file = "/home/casey/Research/Projects/SDMs/Data/vars_cor.csv")
 
 ################
