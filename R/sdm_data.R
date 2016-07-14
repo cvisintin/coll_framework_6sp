@@ -66,7 +66,7 @@ rm(data0)
 
 #construct metadata for all species
 for(i in 1:nrow(species.table)) {
-  assign(paste(species.table[i,3],".data",sep=""),read.delim(paste("data/",species.table[i,3],".data",sep=""), header=T, sep=","))
+  assign(paste(species.table[i,2],".data",sep=""),read.delim(paste("data/",species.table[i,3],".data",sep=""), header=T, sep=","))
 }
 
 brt_data <- data.frame("SPP"=rep(NA,nrow(species.table)),"SO_N"=rep(NA,nrow(species.table)),"SO_P"=rep(NA,nrow(species.table)),"SO_A"=rep(NA,nrow(species.table)))
