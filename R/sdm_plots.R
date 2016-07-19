@@ -9,6 +9,37 @@ sdm.bw = colorRampPalette(c("white","black"))
 
 load(file = "data/brt_models_simp")
 
+
+#create prediction plots for all species
+for(i in 1:nrow(species.table)) {
+  assign(paste(toupper(species.table[i,2]),sep=""),raster(paste("output/",toupper(species.table[i,2]),"_preds_brt.tif",sep="")))
+  png(paste("figs/",toupper(species.table[i,2]),"_preds_brt.png",sep=""), bg = "transparent", width = 1000, height = 700, pointsize = 24)
+  par(mar=c(0,0,0,0)+0.0)
+  plot(get(paste(toupper(species.table[i,2]))), col=sdm.colors(100), axes=F, box=FALSE)
+  dev.off()
+}
+
+
+#plot spatial autocorrelation across all species
+shapes <- unlist(lapply(c("1", "2", "3", "4", "5", "6"), utf8ToInt))
+
+png("figs/sac.png", bg = "transparent", width = 1000, height = 800, pointsize = 30)
+ggplot(auto,aes(x=x,y=y,group=col,shape=col)) + 
+  geom_line(colour=c("grey70"),size=.75) + 
+  geom_point(size=4) + 
+  ylab("Moran's I") + 
+  xlab("Distance (km)") + 
+  labs(shape = "Species") + 
+  theme_bw() + 
+  theme(legend.key = element_blank()) +
+  theme(text = element_text(size = 16)) +
+  scale_colour_manual(values=plotPal) + 
+  scale_shape_manual(values=shapes) + 
+  geom_hline(aes(yintercept=0), linetype=2) + 
+  scale_x_continuous(breaks=seq(1, 20, 1))
+dev.off()
+
+
 #plot effect of greenness for all species
 green <- NULL
 for (i in 1:nrow(species.table)) {
