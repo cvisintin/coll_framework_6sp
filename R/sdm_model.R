@@ -54,7 +54,7 @@ brt.models.simp <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo
   model
 }
 save(brt.models.simp, file = "data/brt_models_simp")
-#load(file = "data/brt_models")
+#load(file = "data/brt_models_simp")
 
 
 #make predictions for all species
@@ -70,6 +70,7 @@ brt.models.output <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dis
   #summary(model)
 }
 
+#plot predictions for all species
 for(i in 1:nrow(species.table)) {
   assign(paste(toupper(species.table[i,2]),sep=""),raster(paste("output/",toupper(species.table[i,2]),".asc",sep="")))
   png(paste("figs/",toupper(species.table[i,2]),"_preds.png",sep=""), bg = "transparent", width = 1000, height = 700, pointsize = 24)
