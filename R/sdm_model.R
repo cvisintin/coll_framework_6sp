@@ -57,7 +57,8 @@ save(brt.models.simp, file = "data/brt_models_simp")
 #load(file = "data/brt_models_simp")
 
 
-#make predictions for all species
+#make predictions for all species and create grids
+load(file = "data/vars")
 registerDoMC(detectCores() - 1)
 
 brt.models.output <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo","raster")) %dopar% {
@@ -65,19 +66,11 @@ brt.models.output <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dis
   model <- brt.models.simp[[i]]
   #model <- brt.models[[i]]
   model.preds <- predict(vars, model, n.trees=model[["gbm.call"]][["best.trees"]], type="response")
-  writeRaster(model.preds, filename=paste("output/",toupper(species.table[i,2]),"_preds.asc",sep=""), format="ascii", overwrite=TRUE)
-  plot(model.preds, col=sdm.colors(100), axes=F, box=FALSE)
-  #summary(model)
+  writeRaster(model.preds, filename=paste("output/",toupper(species.table[i,2]),"_preds_brt.tif",sep=""), format="GTiff", overwrite=TRUE)
+  #plot(model.preds, col=sdm.colors(100), axes=F, box=FALSE)
+  summary(model)
 }
 
-#plot predictions for all species
-for(i in 1:nrow(species.table)) {
-  assign(paste(toupper(species.table[i,2]),sep=""),raster(paste("output/",toupper(species.table[i,2]),".asc",sep="")))
-  png(paste("figs/",toupper(species.table[i,2]),"_preds.png",sep=""), bg = "transparent", width = 1000, height = 700, pointsize = 24)
-  par(mar=c(0,0,0,0)+0.0)
-  plot(get(paste(toupper(species.table[i,2]))), col=sdm.colors(100), axes=F, box=FALSE)
-  dev.off()
-}
 
 #summarize model output data
 brt_deviance <- data.frame("SPP"=rep(NA,nrow(species.table)),"DEV"=rep(NA,nrow(species.table)),"ERR"=rep(NA,nrow(species.table)),"ROC"=rep(NA,nrow(species.table)),"ROCERR"=rep(NA,nrow(species.table)))
@@ -92,12 +85,15 @@ for(i in 1:nrow(species.table)) {
   brt_deviance[i,"ROCERR"] <- brt.models.simp[i][[1]][["cv.statistics"]][["discrimination.se"]]
   #brt_deviance[i,"ROCERR"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.se"]]
 }
-write.csv(brt_deviance, file = "data/brt_devs.csv", row.names=FALSE)
+write.csv(brt_deviance, file = "output/brt_devs.csv", row.names=FALSE)
 
 
-brt_sums <- data.frame(rep(NA,length(ascii.names)))
+grid.files <- list.files(path='data/grids') #Create vector of filenames
+grid.names <- unlist(strsplit(grid.files,"\\."))[(1:(2*(length(grid.files)))*2)-1][1:length(grid.files)]
+
+brt_sums <- data.frame(rep(NA,length(grid.names)))
 colnames(brt_sums) <- c("Predictor")
-brt_sums$Predictor <- ascii.names[1:(length(ascii.names))]
+brt_sums$Predictor <- grid.names[1:(length(grid.names))]
 for(i in 1:nrow(species.table)) {
   x.var <- data.frame(brt.models.output[i],stringsAsFactors=FALSE)
   x.var[2] <- round(x.var[2],2)
@@ -109,8 +105,8 @@ for(i in 1:nrow(species.table)) {
 
 #check total influence of variables across all species
 nums <- sapply(brt_sums, is.numeric)
-brt_sums$Total <- as.integer(rep(0,length(ascii.names)))
-brt_sums$wTotal <- as.integer(rep(0,length(ascii.names)))
+brt_sums$Total <- as.integer(rep(0,length(grid.names)))
+brt_sums$wTotal <- as.integer(rep(0,length(grid.names)))
 count <- rowSums(brt_sums!=0)-1
 for(i in 1:nrow(brt_sums)) {
   brt_sums[i,"Total"] <- sum(brt_sums[i, nums])
@@ -131,7 +127,7 @@ for(i in 2:ncol(brt_sums)) {
 brt_sums[brt_sums==0] <- "---"
 print(xtable(brt_sums), include.rownames=FALSE, sanitize.text.function=function(x){x}, floating=FALSE)  
 
-write.csv(brt_sums, file = "data/brt_sums.csv", row.names=FALSE)
+write.csv(brt_sums, file = "output/brt_sums.csv", row.names=FALSE)
 
 
 #calculate spatial autocorrelation across all species
@@ -141,22 +137,8 @@ auto <- foreach(i = 1:nrow(species.table), .packages = c("ncf"), .combine="rbind
   model <- brt.models.simp[[i]]
   #model <- brt.models[[i]]
   cor <- correlog(data[,1], data[,2], resid(model), increment=1000, resamp=0, latlon=FALSE)
-  temp_df <- data.frame(x=as.numeric(names(cor$correlation[2:21])), y=cor$correlation[2:21], col=rep(toupper(species.table[i,2]), each=length(cor$correlation[2:21])))
+  temp_df <- data.frame(x=as.numeric(names(cor$correlation[2:20])), y=cor$correlation[2:20], col=rep(toupper(species.table[i,2]), each=length(cor$correlation[2:20])))
   temp_df
 } 
-
-shapes <- unlist(lapply(c("1", "2", "3", "4", "5", "6"), utf8ToInt))
-
-ggplot(auto,aes(x=x,y=y,group=col,shape=col)) + 
-  geom_line(colour=c("grey70"),size=.75) + 
-  geom_point(size=3) + 
-  ylab("Moran's I") + 
-  xlab("Distance (km)") + 
-  labs(shape = "Species") + 
-  theme_bw() + 
-  theme(legend.key = element_blank()) +
-  theme(text = element_text(size = 16)) +
-  scale_colour_manual(values=plotPal) + 
-  scale_shape_manual(values=shapes) + 
-  geom_hline(aes(yintercept=0), linetype=2) + 
-  scale_x_continuous(breaks=seq(1, 20, 1))
+save(auto, file = "output/sac")
+#load(file = "output/sac")
