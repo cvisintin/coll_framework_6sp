@@ -7,7 +7,16 @@ library("ncf")
 library("doMC")
 library("data.table")
 
-source("/home/casey/Research/Projects/SDMs/Model/misc.functions.R")
+"roc" <- function (obsdat, preddat) {
+    if (length(obsdat) != length(preddat)) 
+      stop("obs and preds must be equal lengths")
+    n.x <- length(obsdat[obsdat == 0])
+    n.y <- length(obsdat[obsdat == 1])
+    xy <- c(preddat[obsdat == 0], preddat[obsdat == 1])
+    rnk <- rank(xy)
+    wilc <- ((n.x * n.y) + ((n.x * (n.x + 1))/2) - sum(rnk[1:n.x]))/(n.x * n.y)
+    return(round(wilc, 4))
+}
 
 plotPal <- c("#94d1c7", "#cccc2b", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#969696", "#bc80bd")
 
