@@ -27,6 +27,7 @@ for (i in 1:length(grid.files)) {
   assign(grid.names[i],temp * vic.rst)
 }
 vars <- stack(mget(grid.names)) #Combine all maps to single stack
+save(vars, file = "data/vars")
 
 #vars.cor <- layerStats(vars, 'pearson', na.rm=TRUE)
 #write.csv(vars.cor[[1]], file = "/home/casey/Research/Projects/SDMs/Data/vars_cor.csv")
@@ -75,7 +76,8 @@ for(i in 1:nrow(species.table)) {
   data <- get(paste(species.table[i,2],".data",sep=""))
   brt_data[i,"SO_N"] <- nrow(data)
   brt_data[i,"SO_P"] <- nrow(data[data$occ == 1, ])
-  brt_data[i,"SO_A"] <- nrow(data[data$occ == 0, ])
+  brt_data[i,"SO_B"] <- nrow(data[data$occ == 0, ])
+  brt_data[i,"ALL"] <- paste0(brt_data[i,"N"]," : ",brt_data[i,"SO_P"],"P / ",brt_data[i,"SO_B"],"B")
   rm(data)
 }
 write.csv(brt_data, file = "data/brt_data_meta.csv", row.names=FALSE)
