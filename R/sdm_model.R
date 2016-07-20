@@ -1,9 +1,9 @@
-require("ncf")
-require("xtable")
-require("gbm")
-require("doMC")
-require("dismo")
-require("ggplot2")
+require(ncf)
+require(xtable)
+require(gbm)
+require(doMC)
+require(dismo)
+require(ggplot2)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 

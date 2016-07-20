@@ -1,10 +1,10 @@
-require("maptools")
-require("raster")
-require("ncf")
-require("xtable")
-require("rgdal")
-require("rgeos")
-require("RPostgreSQL")
+require(maptools)
+require(raster)
+require(ncf)
+require(xtable)
+require(rgdal)
+require(rgeos)
+require(RPostgreSQL)
 
 drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
 con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab

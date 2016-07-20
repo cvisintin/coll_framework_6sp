@@ -1,6 +1,6 @@
-require("ncf")
-require("xtable")
-require("ggplot2")
+require(ncf)
+require(xtable)
+require(ggplot2)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 
