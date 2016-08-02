@@ -90,13 +90,13 @@ coll <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar%
 
 
 #construct modelling datasets using all road segments
-registerDoMC(detectCores() - 1)
-model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-  data1 <- coll[[i]]
-  data <- cov.data
-  data[data1, coll := i.coll]
-  na.omit(data[,c(1,i+5,4,5,12),with=FALSE])
-}
+# registerDoMC(detectCores() - 1)
+# model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+#   data1 <- coll[[i]]
+#   data <- cov.data
+#   data[data1, coll := i.coll]
+#   na.omit(data[,c(1,i+5,4,5,12),with=FALSE])
+# }
 
 #construct modelling datasets using 2x ncoll randomly sampled raods
 registerDoMC(detectCores() - 1)
@@ -109,8 +109,10 @@ model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %
   data1 <- data.all[coll==1]
   
   data <- rbind(data0,data1)
-  na.omit(data[,c(1,i+5,4,5,12),with=FALSE])
+  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
 }
+save(model.data, file="data/coll_model_data")
+
 
 #construct metadata for all species
 coll_data <- data.frame("SPP"=rep(NA,nrow(species.table)),"CR_N"=rep(NA,nrow(species.table)),"CR_P"=rep(NA,nrow(species.table)),"CR_A"=rep(NA,nrow(species.table)))
@@ -123,7 +125,6 @@ for(i in 1:nrow(species.table)) {
   rm(data)
 }
 write.csv(coll_data, file = "data/coll_data_meta.csv", row.names=FALSE)
-save(model.data, file="data/coll_model_data")
 
 
 registerDoMC(detectCores() - 1)
@@ -166,5 +167,7 @@ val.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %do
   data1 <- data.all[coll==1]
   
   data <- rbind(data0,data1)
-  na.omit(data[,c(1,i+5,4,5,12),with=FALSE])
+  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
 }
+
+save(val.data, file="data/coll_val_data")
