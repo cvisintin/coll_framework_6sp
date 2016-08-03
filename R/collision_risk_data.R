@@ -171,3 +171,199 @@ val.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %do
 }
 
 save(val.data, file="data/coll_val_data")
+
+#construct seasonal model data sets
+registerDoMC(detectCores() - 1)
+coll.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
+  con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
+  data <- as.data.table(dbGetQuery(con,paste0("
+    SELECT DISTINCT ON (p.id)
+      r.uid AS uid, CAST(1 AS INTEGER) AS coll
+	  FROM
+      gis_victoria.vic_gda9455_roads_state as r,
+        (SELECT
+          id, geom
+        FROM
+          gis_victoria.vic_gda9455_fauna_wv
+        WHERE
+          species = '",species.table[i,1],"'
+        AND
+          cause = 'hit by vehicle'
+        AND
+          year < 2013
+        AND
+          (month = 12
+          OR
+          month = 01
+          OR
+          month = 02
+          )) AS p
+    WHERE ST_DWithin(p.geom,r.geom,100)
+    ORDER BY p.id, ST_Distance(p.geom,r.geom)
+    "))
+  )
+  setkey(data,uid)
+  unique(data)
+}
+
+registerDoMC(detectCores() - 1)
+model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data.coll <- coll.summer[[i]]
+  set.seed(123)
+  data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
+  data.all <- cov.data
+  data.all[data.coll, coll := i.coll]
+  data1 <- data.all[coll==1]
+  
+  data <- rbind(data0,data1)
+  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+}
+save(model.data.summer, file="data/coll_model_data_sum")
+
+
+registerDoMC(detectCores() - 1)
+coll.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
+  con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
+  data <- as.data.table(dbGetQuery(con,paste0("
+    SELECT DISTINCT ON (p.id)
+      r.uid AS uid, CAST(1 AS INTEGER) AS coll
+	  FROM
+      gis_victoria.vic_gda9455_roads_state as r,
+        (SELECT
+          id, geom
+        FROM
+          gis_victoria.vic_gda9455_fauna_wv
+        WHERE
+          species = '",species.table[i,1],"'
+        AND
+          cause = 'hit by vehicle'
+        AND
+          year < 2013
+        AND
+          (month = 03
+          OR
+          month = 04
+          OR
+          month = 05
+          )) AS p
+    WHERE ST_DWithin(p.geom,r.geom,100)
+    ORDER BY p.id, ST_Distance(p.geom,r.geom)
+    "))
+  )
+  setkey(data,uid)
+  unique(data)
+}
+
+registerDoMC(detectCores() - 1)
+model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data.coll <- coll.autumn[[i]]
+  set.seed(123)
+  data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
+  data.all <- cov.data
+  data.all[data.coll, coll := i.coll]
+  data1 <- data.all[coll==1]
+  
+  data <- rbind(data0,data1)
+  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+}
+save(model.data.autumn, file="data/coll_model_data_aut")
+
+
+registerDoMC(detectCores() - 1)
+coll.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
+  con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
+  data <- as.data.table(dbGetQuery(con,paste0("
+    SELECT DISTINCT ON (p.id)
+      r.uid AS uid, CAST(1 AS INTEGER) AS coll
+	  FROM
+      gis_victoria.vic_gda9455_roads_state as r,
+        (SELECT
+          id, geom
+        FROM
+          gis_victoria.vic_gda9455_fauna_wv
+        WHERE
+          species = '",species.table[i,1],"'
+        AND
+          cause = 'hit by vehicle'
+        AND
+          year < 2013
+        AND
+          (month = 06
+          OR
+          month = 07
+          OR
+          month = 08
+          )) AS p
+    WHERE ST_DWithin(p.geom,r.geom,100)
+    ORDER BY p.id, ST_Distance(p.geom,r.geom)
+    "))
+  )
+  setkey(data,uid)
+  unique(data)
+}
+
+registerDoMC(detectCores() - 1)
+model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data.coll <- coll.winter[[i]]
+  set.seed(123)
+  data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
+  data.all <- cov.data
+  data.all[data.coll, coll := i.coll]
+  data1 <- data.all[coll==1]
+  
+  data <- rbind(data0,data1)
+  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+}
+save(model.data.winter, file="data/coll_model_data_win")
+
+
+registerDoMC(detectCores() - 1)
+coll.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
+  con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
+  data <- as.data.table(dbGetQuery(con,paste0("
+    SELECT DISTINCT ON (p.id)
+      r.uid AS uid, CAST(1 AS INTEGER) AS coll
+	  FROM
+      gis_victoria.vic_gda9455_roads_state as r,
+        (SELECT
+          id, geom
+        FROM
+          gis_victoria.vic_gda9455_fauna_wv
+        WHERE
+          species = '",species.table[i,1],"'
+        AND
+          cause = 'hit by vehicle'
+        AND
+          year < 2013
+        AND
+          (month = 09
+          OR
+          month = 10
+          OR
+          month = 11
+          )) AS p
+    WHERE ST_DWithin(p.geom,r.geom,100)
+    ORDER BY p.id, ST_Distance(p.geom,r.geom)
+    "))
+  )
+  setkey(data,uid)
+  unique(data)
+}
+
+registerDoMC(detectCores() - 1)
+model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data.coll <- coll.spring[[i]]
+  set.seed(123)
+  data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
+  data.all <- cov.data
+  data.all[data.coll, coll := i.coll]
+  data1 <- data.all[coll==1]
+  
+  data <- rbind(data0,data1)
+  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+}
+save(model.data.spring, file="data/coll_model_data_spr")
