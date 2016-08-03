@@ -194,3 +194,45 @@ coll_risk_tot[,.N,by=TOTAL]
 assign(paste0("coll_risk_",threshold*100), coll_risk_tot[,.(UID,TOTAL)])
 
 write.csv(get(paste0("coll_risk_",threshold*100)), file = paste0("output/coll_risk_",threshold*100,".csv"), row.names=FALSE)
+
+
+#model based on seasons
+load("data/coll_model_data_sum")
+load("data/coll_model_data_aut")
+load("data/coll_model_data_win")
+load("data/coll_model_data_spr")
+
+registerDoMC(detectCores() - 1)
+coll.glm.deviance.summer <- foreach(i = 1:nrow(species.table)) %dopar% {
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+}
+
+registerDoMC(detectCores() - 1)
+coll.glm.deviance.autumn <- foreach(i = 1:nrow(species.table)) %dopar% {
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.autumn[[i]])
+  paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+}
+
+registerDoMC(detectCores() - 1)
+coll.glm.deviance.winter <- foreach(i = 1:nrow(species.table)) %dopar% {
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.winter[[i]])
+  paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+}
+
+registerDoMC(detectCores() - 1)
+coll.glm.deviance.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.spring[[i]])
+  paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+}
+
+registerDoMC(detectCores() - 1)
+coll.glm.summer <- foreach(i = 1:nrow(species.table)) %dopar% {
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+}
+save(coll.glm.summer, file="output/coll_glm_summer")
