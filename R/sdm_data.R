@@ -30,7 +30,7 @@ vars <- stack(mget(grid.names)) #Combine all maps to single stack
 save(vars, file = "data/vars")
 
 #vars.cor <- layerStats(vars, 'pearson', na.rm=TRUE)
-#write.csv(vars.cor[[1]], file = "/home/casey/Research/Projects/SDMs/Data/vars_cor.csv")
+#write.csv(vars.cor[[1]], file = "data/vars_cor.csv")
 
 ################
 
