@@ -6,6 +6,11 @@ require(ncf)
 require(doMC)
 require(data.table)
 require(logistf)
+require(RPostgreSQL)
+
+drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
+con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
+
 
 "roc" <- function (obsdat, preddat) {
     if (length(obsdat) != length(preddat)) 
@@ -162,6 +167,8 @@ coll.val.roc <- foreach(i = 1:nrow(species.table)) %dopar% {
 write.csv(coll.val.roc, file = "output/coll_ind_roc.csv", row.names=FALSE)
 
 #make predictions based on models
+load("data/cov_data")
+
 registerDoMC(detectCores() - 1)
 glm.preds <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
@@ -171,14 +178,16 @@ glm.preds <- foreach(i = 1:nrow(species.table)) %dopar% {
   preds
 }
 
-coll_preds <- data.frame("UID"=cov.data$uid)
+coll_preds <- data.frame("uid"=cov.data$uid)
 for(i in 1:nrow(species.table)) {
   x <- data.frame(glm.preds[[i]])
   rownames(x) <- NULL
-  colnames(x) <- toupper(paste(species.table[i,2]))
+  colnames(x) <- paste(species.table[i,2])
   coll_preds <- cbind(coll_preds,x)
   rm(x)
 }
+
+dbWriteTable(con, c("gis_victoria", "vic_nogeom_roads_6spcollrisk"), value = coll_preds, row.names=FALSE)
 
 #recode and classify road segment risk based on all species
 coll_risk <- na.omit(data.table(coll_preds))
@@ -230,7 +239,7 @@ coll.glm.autumn <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
-save(coll.glm.summer, file="output/coll_glm_autumn")
+save(coll.glm.autumn, file="output/coll_glm_autumn")
 
 
 # registerDoMC(detectCores() - 1)
@@ -245,7 +254,7 @@ coll.glm.winter <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
-save(coll.glm.summer, file="output/coll_glm_winter")
+save(coll.glm.winter, file="output/coll_glm_winter")
 
 
 # registerDoMC(detectCores() - 1)
@@ -260,4 +269,4 @@ coll.glm.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
-save(coll.glm.summer, file="output/coll_glm_spring")
+save(coll.glm.spring, file="output/coll_glm_spring")
