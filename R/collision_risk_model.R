@@ -5,6 +5,7 @@ require(R2jags)
 require(ncf)
 require(doMC)
 require(data.table)
+require(logistf)
 
 "roc" <- function (obsdat, preddat) {
     if (length(obsdat) != length(preddat)) 
@@ -202,37 +203,61 @@ load("data/coll_model_data_aut")
 load("data/coll_model_data_win")
 load("data/coll_model_data_spr")
 
-registerDoMC(detectCores() - 1)
-coll.glm.deviance.summer <- foreach(i = 1:nrow(species.table)) %dopar% {
-  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
-  paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-}
-
-registerDoMC(detectCores() - 1)
-coll.glm.deviance.autumn <- foreach(i = 1:nrow(species.table)) %dopar% {
-  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.autumn[[i]])
-  paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-}
-
-registerDoMC(detectCores() - 1)
-coll.glm.deviance.winter <- foreach(i = 1:nrow(species.table)) %dopar% {
-  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.winter[[i]])
-  paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-}
-
-registerDoMC(detectCores() - 1)
-coll.glm.deviance.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
-  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.spring[[i]])
-  paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-}
+# registerDoMC(detectCores() - 1)
+# coll.glm.deviance.summer <- foreach(i = 1:nrow(species.table)) %dopar% {
+#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+#   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+#   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+# }
 
 registerDoMC(detectCores() - 1)
 coll.glm.summer <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
 save(coll.glm.summer, file="output/coll_glm_summer")
+
+
+# registerDoMC(detectCores() - 1)
+# coll.glm.deviance.autumn <- foreach(i = 1:nrow(species.table)) %dopar% {
+#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+#   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.autumn[[i]])
+#   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+# }
+
+registerDoMC(detectCores() - 1)
+coll.glm.autumn <- foreach(i = 1:nrow(species.table)) %dopar% {
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+}
+save(coll.glm.summer, file="output/coll_glm_autumn")
+
+
+# registerDoMC(detectCores() - 1)
+# coll.glm.deviance.winter <- foreach(i = 1:nrow(species.table)) %dopar% {
+#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+#   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.winter[[i]])
+#   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+# }
+
+registerDoMC(detectCores() - 1)
+coll.glm.winter <- foreach(i = 1:nrow(species.table)) %dopar% {
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+}
+save(coll.glm.summer, file="output/coll_glm_winter")
+
+
+# registerDoMC(detectCores() - 1)
+# coll.glm.deviance.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
+#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+#   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.spring[[i]])
+#   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+# }
+
+registerDoMC(detectCores() - 1)
+coll.glm.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+}
+save(coll.glm.summer, file="output/coll_glm_spring")
