@@ -61,6 +61,8 @@ for(i in 1:nrow(species.table)){
 
 cov.data$coll <- as.integer(0)
 
+save(cov.data, file="data/cov_data")
+
 registerDoMC(detectCores() - 1)
 coll <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
   drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
