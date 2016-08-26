@@ -42,6 +42,20 @@ coll.glm.deviance <- foreach(i = 1:nrow(species.table)) %dopar% {
   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
 }
 
+#combine all datasets for glm model
+model.data2 <- model.data
+
+for(i in 1:nrow(species.table)){
+  colnames(model.data2[[i]]) <- c("uid","x","y","occ","tvol","tspd","coll")
+}
+
+model.data.all <- do.call(rbind,model.data2)
+
+model <- glm(formula = coll ~ log(occ) + log(tvol) + I(log(tvol)^2) + log(tspd), family=binomial(link = "cloglog"), data = model.data.all[!duplicated(model.data.all$x),])
+paste("% Deviance Explained: ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
+
+summary(model)
+
 # ##############
 # paste("% Deviance Explained: ",round(((coll.glm$null.deviance - coll.glm$deviance)/coll.glm$null.deviance)*100,2),sep="")  #Report reduction in deviance
 # 
@@ -165,6 +179,20 @@ coll.val.roc <- foreach(i = 1:nrow(species.table)) %dopar% {
   roc(val.data[[i]]$coll, val.pred.glm)  #Compare collision records to predictions using receiver operator characteristic (ROC) function and report value
 }
 write.csv(coll.val.roc, file = "output/coll_ind_roc.csv", row.names=FALSE)
+
+
+#combine all validation data to assess all species model
+val.data2 <- val.data
+
+for(i in 1:nrow(species.table)){
+  colnames(val.data2[[i]]) <- c("uid","x","y","occ","tvol","tspd","coll")
+}
+
+val.data.all <- do.call(rbind,val.data2)
+
+val.pred.glm <- predict(model, val.data.all[!duplicated(val.data.all$x),], type="response")  #Make predictions with regression model fit
+roc(val.data.all[!duplicated(val.data.all$x),coll], val.pred.glm)  #Compare collision records to predictions using receiver operator characteristic (ROC) function and report value
+
 
 #make predictions based on models
 load("data/cov_data")
