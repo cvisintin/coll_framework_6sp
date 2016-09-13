@@ -18,7 +18,7 @@ load("output/coll_glm")
 occ <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data[[i]]
-  colnames(data) <- c("uid","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
   model <- coll.glm[[i]]
   temp_df <- data.frame(x=data[,occ], y=invcloglog(cbind(1,log(data[,occ]),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),mean(log(data[,tspd]))) %*% coef(model)), col=rep(toupper(species.table[i,2]), each=length(data[,occ])))
   occ <- rbind(occ,temp_df)
@@ -49,7 +49,7 @@ dev.off()
 tvol <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data[[i]]
-  colnames(data) <- c("uid","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
   model <- coll.glm[[i]]
   temp_df <- data.frame(x=data[,tvol], y=invcloglog(cbind(1,mean(log(data[,occ])),log(data[,tvol]),(log(data[,tvol]))*(log(data[,tvol])),mean(log(data[,tspd]))) %*% coef(model)), col=rep(toupper(species.table[i,2]), each=length(data[,tvol])))
   tvol <- rbind(tvol,temp_df)
@@ -80,7 +80,7 @@ dev.off()
 tspd <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data[[i]]
-  colnames(data) <- c("uid","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
   model <- coll.glm[[i]]
   temp_df <- data.frame(x=data[,tspd], y=invcloglog(cbind(1,mean(log(data[,occ])),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),log(data[,tspd])) %*% coef(model)), col=rep(toupper(species.table[i,2]), each=length(data[,tspd])))
   tspd <- rbind(tspd,temp_df)
