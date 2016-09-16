@@ -60,27 +60,27 @@ for (i in 1:nrow(species.table)) {
   values <- plot.gbm(model, i.var="TEMPANRANGE",return.grid=TRUE, type="response")
   colnames(values) <- c("x","y")
   values$x <- values$x/10
-  values$col <- as.factor(rep(paste(toupper(species.table[i,2])), each=length(values[,2])))
+  values$name <- as.factor(rep(paste(species.names[i]), each=length(values[,2])))
   tempanrange <- rbind(tempanrange,values)
   rm(data)
   rm(model)
   rm(values)
 }  
 
-tiff('figs/tempanrange.tif', pointsize = 8, compression = "lzw", res=300, width = 1100, height = 900)
-ggplot(tempanrange,aes(x=x,y=y,group=col,colour=col)) + 
+tiff('figs/tempanrange.tif', pointsize = 11, compression = "lzw", res=300, width = 900, height = 900)
+ggplot(tempanrange,aes(x=x,y=y,group=name,colour=name)) + 
   geom_line(size=0.3) +  
   ylab("Occurence (Pr)") + 
   xlab(expression(paste("Annual Range of Temperature (",degree,"C)",sep=""))) + 
   labs(color = "Species") + 
   theme_bw() + 
-  theme(legend.key = element_blank()) + 
-  theme(plot.margin=unit(c(.5,0,.1,.1),"cm")) +
+  theme(legend.key = element_blank(), legend.position="none") + 
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
   theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
   theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
   scale_colour_manual(values=plotPal) +
-  theme(text = element_text(size = 8)) +
+  theme(text = element_text(size = 11)) +
   scale_x_continuous(expand = c(0, 0), lim=c(15,30))
 dev.off()
 
@@ -92,27 +92,27 @@ for (i in 1:nrow(species.table)) {
   model <- brt.models.simp[[i]]
   values <- plot.gbm(model, i.var="LIGHT",return.grid=TRUE, type="response")
   colnames(values) <- c("x","y")
-  values$col <- as.factor(rep(paste(toupper(species.table[i,2])), each=length(values[,2])))
+  values$name <- as.factor(rep(paste(species.names[i]), each=length(values[,2])))
   light <- rbind(light,values)
   rm(data)
   rm(model)
   rm(values)
 }
 
-tiff('figs/light.tif', pointsize = 8, compression = "lzw", res=300, width = 1100, height = 900)
-ggplot(light,aes(x=x,y=y,group=col,colour=col)) + 
+tiff('figs/light.tif', pointsize = 11, compression = "lzw", res=300, width = 900, height = 900)
+ggplot(light,aes(x=x,y=y,group=name,colour=name)) + 
   geom_line(size=0.3) + 
   ylab("Occurence (Pr)") + 
   xlab("Artificial Light (relative)") + 
   labs(color = "Species") + 
   theme_bw() + 
-  theme(legend.key = element_blank()) +
-  theme(plot.margin=unit(c(.5,0,.1,.1),"cm")) +
+  theme(legend.key = element_blank(), legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
   theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
   theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
   scale_colour_manual(values=plotPal) +
-  theme(text = element_text(size = 8)) +
+  theme(text = element_text(size = 11)) +
   scale_x_continuous(expand = c(0, 0), lim=c(0,65))
 dev.off()
 
@@ -124,27 +124,27 @@ for (i in 1:nrow(species.table)) {
   model <- brt.models.simp[[i]]
   values <- plot.gbm(model, i.var="PRECDM",return.grid=TRUE, type="response")
   colnames(values) <- c("x","y")
-  values$col <- as.factor(rep(paste(toupper(species.table[i,2])), each=length(values[,2])))
+  values$name <- as.factor(rep(paste(species.names[i]), each=length(values[,2])))
   precdm <- rbind(precdm,values)
   rm(data)
   rm(model)
   rm(values)
 }
 
-tiff('figs/precdm.tif', pointsize = 8, compression = "lzw", res=300, width = 1100, height = 900)
-ggplot(precdm,aes(x=x,y=y,group=col,colour=col)) + 
+tiff('figs/precdm.tif', pointsize = 11, compression = "lzw", res=300, width = 900, height = 900)
+ggplot(precdm,aes(x=x,y=y,group=name,colour=name)) + 
   geom_line(size=0.3) + 
   ylab("Occurence (Pr)") + 
   xlab("Precipitation of Driest Month (mm)") + 
   labs(color = "Species") + 
   theme_bw() + 
-  theme(legend.key = element_blank()) + 
-  theme(plot.margin=unit(c(.5,0,.1,.1),"cm")) +
+  theme(legend.key = element_blank(), legend.position="none") + 
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
   theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
   theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
   scale_colour_manual(values=plotPal) +
-  theme(text = element_text(size = 8)) +
+  theme(text = element_text(size = 11)) +
   scale_x_continuous(expand = c(0, 0), lim=c(20,80))
 dev.off()
 
@@ -156,15 +156,15 @@ for (i in 1:nrow(species.table)) {
   model <- brt.models.simp[[i]]
   values <- plot.gbm(model, i.var="GREEN",return.grid=TRUE, type="response")
   colnames(values) <- c("x","y")
-  values$col <- as.factor(rep(paste(toupper(species.table[i,2])), each=length(values[,2])))
+  values$name <- as.factor(rep(paste(species.names[i]), each=length(values[,2])))
   green <- rbind(green,values)
   rm(data)
   rm(model)
   rm(values)
 }  
 
-tiff('figs/green.tif', pointsize = 8, compression = "lzw", res=300, width = 1100, height = 900)
-ggplot(green,aes(x=x,y=y,group=col,colour=col)) + 
+tiff('figs/green.tif', pointsize = 11, compression = "lzw", res=300, width = 1500, height = 900)
+ggplot(green,aes(x=x,y=y,group=name,colour=name)) + 
   geom_line(size=0.3) + 
   ylab("Occurence (Pr)") + 
   xlab("Seasonal Change in Vegetation Greenness") + 
@@ -176,7 +176,7 @@ ggplot(green,aes(x=x,y=y,group=col,colour=col)) +
   theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
   scale_colour_manual(values=plotPal) +
-  theme(text = element_text(size = 8)) +
+  theme(text = element_text(size = 11)) +
   scale_x_continuous(expand = c(0, 0), lim=c(-0.3,0.5))
 dev.off()
 
