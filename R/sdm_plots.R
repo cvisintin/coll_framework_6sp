@@ -7,12 +7,15 @@ require(ggplot2)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 
+species.names <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Black Swamp Wallaby","Common Wombat","Koala")
+
 sdm.colors = colorRampPalette(c("white","red"))
 sdm.bw = colorRampPalette(c("white","black"))
 
 plotPal <- c("#94d1c7", "#cccc2b", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#969696", "#bc80bd")
 
 load(file = "data/brt_models_simp")
+load(file = "output/sac")
 
 victoria <- readShapePoly("data/VIC_GDA9455_ADMIN_STATE.shp")
 
@@ -30,8 +33,10 @@ for(i in 1:nrow(species.table)) {
 #plot spatial autocorrelation across all species
 shapes <- unlist(lapply(c("1", "2", "3", "4", "5", "6"), utf8ToInt))
 
-png("figs/sac.png", bg = "transparent", width = 1000, height = 800, pointsize = 30)
-ggplot(auto,aes(x=x,y=y,group=col,shape=col)) + 
+auto <- cbind(auto,"name"=rep(species.names, each=19))
+
+png("figs/sac.png", bg = "transparent", width = 1100, height = 800, pointsize = 30)
+ggplot(auto,aes(x=x,y=y,group=name,shape=name)) + 
   geom_line(colour=c("grey70"),size=.75) + 
   geom_point(size=4) + 
   ylab("Moran's I") + 
@@ -39,7 +44,7 @@ ggplot(auto,aes(x=x,y=y,group=col,shape=col)) +
   labs(shape = "Species") + 
   theme_bw() + 
   theme(legend.key = element_blank()) +
-  theme(text = element_text(size = 16)) +
+  theme(text = element_text(size = 20)) +
   scale_colour_manual(values=plotPal) + 
   scale_shape_manual(values=shapes) + 
   geom_hline(aes(yintercept=0), linetype=2) + 
