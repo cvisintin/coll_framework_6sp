@@ -109,9 +109,12 @@ model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %
   data.all <- cov.data
   data.all[data.coll, coll := i.coll]
   data1 <- data.all[coll==1]
-  
   data <- rbind(data0,data1)
-  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+  data <- na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+  #cols <- colnames(data)[4:6]
+  #data[, (cols) := lapply(.SD, function(x){log(x)}), .SDcols=cols]
+  #data[, (cols) := lapply(.SD, scale), .SDcols=cols]
+  data
 }
 save(model.data, file="data/coll_model_data")
 
