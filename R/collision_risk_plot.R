@@ -48,6 +48,23 @@ ggplot(occ,aes(x=x,y=y,group=name,colour=factor(name))) +
   #guides(colour=FALSE)
 dev.off()
 
+tiff('figs/occ_k.tif', pointsize = 12, compression = "lzw", res=300, width = 900, height = 900)
+ggplot(occ[occ$name==species.names[1],],aes(x=x,y=y)) +
+  geom_line(size=0.3, colour=plotPal[1]) +
+  ylab("Likelihood of Collision") +
+  xlab("Likelihood of Species Occurrence") +
+  theme_bw() +
+  theme(legend.key = element_blank()) +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  theme(text = element_text(size = 10)) +
+  scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) +
+  scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+#guides(colour=FALSE)
+dev.off()
+
 tvol <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data[[i]]
@@ -62,7 +79,7 @@ for (i in 1:nrow(species.table)) {
 
 tiff('figs/tvol.tif', pointsize = 12, compression = "lzw", res=300, width = 900, height = 900)
 ggplot(tvol,aes(x=x/1000,y=y,group=name,colour=factor(name))) +
-  geom_line(size=0.3) +
+  geom_line(size=0.3, colour=plotPal[1]) +
   ylab("Likelihood of Collision") +
   xlab("Traffic Volume (1000 vehicles/day)") +
   labs(color = "Species") +
@@ -77,6 +94,23 @@ ggplot(tvol,aes(x=x/1000,y=y,group=name,colour=factor(name))) +
   scale_x_continuous(breaks=seq(0,25,by=5), expand = c(0, 0), lim=c(0,25)) +
   scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
   #guides(colour=FALSE)
+dev.off()
+
+tiff('figs/tvol_k.tif', pointsize = 12, compression = "lzw", res=300, width = 900, height = 900)
+ggplot(tvol[occ$name==species.names[1],],aes(x=x/1000,y=y)) +
+  geom_line(size=0.3, colour=plotPal[1]) +
+  ylab("Likelihood of Collision") +
+  xlab("Traffic Volume (1000 vehicles/day)") +
+  theme_bw() +
+  theme(legend.key = element_blank(), legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  theme(text = element_text(size = 10)) +
+  scale_x_continuous(breaks=seq(0,25,by=5), expand = c(0, 0), lim=c(0,25)) +
+  scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+#guides(colour=FALSE)
 dev.off()
 
 tspd <- NULL
@@ -110,6 +144,22 @@ ggplot(tspd,aes(x=x,y=y,group=name,colour=factor(name))) +
   #guides(colour=FALSE)
 dev.off()
 
+tiff('figs/tspd_k.tif', pointsize = 12, compression = "lzw", res=300, width = 900, height = 900)
+ggplot(tspd[occ$name==species.names[1],],aes(x=x,y=y)) +
+  geom_line(size=0.3, colour=plotPal[1]) +
+  ylab("Likelihood of Collision") +
+  xlab("Traffic Speed (km/hour)") +
+  theme_bw() +
+  theme(legend.key = element_blank(), legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  theme(text = element_text(size = 10)) +
+  scale_x_continuous(breaks=seq(40,110,by=10), expand = c(0, 0), lim=c(40,110)) +
+  scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+#guides(colour=FALSE)
+dev.off()
 
 #calculate spatial autocorrelation across all species
 registerDoMC(detectCores() - 1)
