@@ -7,6 +7,8 @@ require(doMC)
 require(data.table)
 require(logistf)
 require(RPostgreSQL)
+require(rethinking)
+require(rstan)
 
 drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
 con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
@@ -28,16 +30,18 @@ species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ring
 
 load("data/coll_model_data")
 
+#model.data2 <- lapply(model.data, function(x) x[coll==0,AC:=0])
+
 registerDoMC(detectCores() - 1)
 coll.glm <- foreach(i = 1:nrow(species.table)) %dopar% {
-  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd) + AC"))
   model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data[[i]])
 }
 save(coll.glm, file="output/coll_glm")
 
 registerDoMC(detectCores() - 1)
 coll.glm.deviance <- foreach(i = 1:nrow(species.table)) %dopar% {
-  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd) + AC"))
   model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data[[i]])
   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
 }
@@ -56,24 +60,34 @@ paste("% Deviance Explained: ",round(((model$null.deviance - model$deviance)/mod
 
 summary(model)
 
-# ##############
-# paste("% Deviance Explained: ",round(((coll.glm$null.deviance - coll.glm$deviance)/coll.glm$null.deviance)*100,2),sep="")  #Report reduction in deviance
-# 
-# write.csv(signif(summary(coll.glm)$coefficients, digits=4),"output/coll_coef.csv",row.names=FALSE)
-# 
-# write.csv(formatC(anova(coll.glm)[2:4,2]/sum(anova(coll.glm)[2:4,2]), format='f',digits=4),"output/coll_anova.csv",row.names=FALSE)
-# 
-# save(coll.glm,file="output/coll_glm")
-# 
-# save(model.data,file="output/coll_model_data")
-# 
-# coll.preds <- predict(coll.glm, cov.data, type="response")
-# 
-# coll.preds.df <- cbind("uid"=cov.data$uid,"collrisk"=coll.preds) #Combine predictions with unique IDs for all road segments
-# coll.preds.df <- na.omit(coll.preds.df)
-# 
-# write.csv(coll.preds.df, file = "output/coll_preds_glm.csv", row.names=FALSE)
-# ###############
+##############
+# set.seed(123) 
+# coll.model.map <- map(
+#   alist(
+#     y ~ dbinom(1,p), 
+#     p <- 1 - exp(-exp(a + b1*x1 + b2*x2 + b3*x3 + b4*x4 + b5*x5)),
+#     a ~ dnorm(0,1),
+#     b1 ~ dnorm(0,1),
+#     b2 ~ dnorm(0,1),
+#     b3 ~ dnorm(0,1),
+#     b4 ~ dnorm(0,1),
+#     b5 ~ dnorm(0,100)
+#   ),
+#   start=list(a=0.5,b1=0.5,b2=0.5,b3=-0.5,b4=0.5,b5=0.5),
+#   data=list(y=model.data[[i]][[7]],
+#             x1=log(model.data[[i]][[4]]),
+#             x2=log(model.data[[i]][[5]]/1000),
+#             x3=log((model.data[[i]][[5]]/1000)*(model.data[[i]][[5]]/1000)),
+#             x4=log(model.data[[i]][[6]]),
+#             x5=model.data[[i]][[8]]
+#             ),
+#   #iter=1000,
+#   #warmup=500,
+#   #chains=3,
+#   #cores=3
+# )
+# precis(coll.model.map)
+###############
 
 #model data with glm and summarize model output data (for word table)
 glm_sums <- data.frame(character(),character(),numeric(),numeric(),numeric(),numeric(),numeric(),stringsAsFactors=FALSE,row.names=NULL)
@@ -82,13 +96,13 @@ for (i in 1:nrow(species.table)) {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   data <- model.data[[i]]
   model <- glm(formula = formula, family = binomial(link = "cloglog"), data = data)
-  assign(paste(tolower(species.table[i,2]),"coll.glm",sep=""), model)
-  assign(paste(tolower(species.table[i,2]),"coll.summary",sep=""),summary(model))
-  assign(paste(tolower(species.table[i,2]),"coll.coef",sep=""),coef(model))
+  #assign(paste(tolower(species.table[i,2]),"coll.glm",sep=""), model)
+  #assign(paste(tolower(species.table[i,2]),"coll.summary",sep=""),summary(model))
+  #assign(paste(tolower(species.table[i,2]),"coll.coef",sep=""),coef(model))
   x <- model
-  assign(paste(tolower(species.table[i,2]),"coll.devexp",sep=""),round(((x$null.deviance - x$deviance)/x$null.deviance)*100,2))
-  assign(paste(tolower(species.table[i,2]),"coll.roc",sep=""),roc(data$coll,x$fitted.values))
-  assign(paste(tolower(species.table[i,2]),"coll.resid",sep=""),resid(x))
+  #assign(paste(tolower(species.table[i,2]),"coll.devexp",sep=""),round(((x$null.deviance - x$deviance)/x$null.deviance)*100,2))
+  #assign(paste(tolower(species.table[i,2]),"coll.roc",sep=""),roc(data$coll,x$fitted.values))
+  #assign(paste(tolower(species.table[i,2]),"coll.resid",sep=""),resid(x))
   
   x.names <- c("Intercept", toupper(paste(species.table[i,2])), "TVOL", "TVOL2", "TSPD")
   x.species <- c(paste(species.list[i],sep=""), NA, NA, NA, NA)
@@ -96,8 +110,8 @@ for (i in 1:nrow(species.table)) {
   x.se <- signif(coef(summary(x))[,2],digits=4)
   x.zvalue <- signif(coef(summary(x))[,3],digits=4)
   x.prz <- signif(coef(summary(x))[,4],digits=2)
-  x.prz <- sapply(x.prz, function(x) ifelse(x < 2e-16, 2e-16, x))
-  x.anova <- signif((anova(x)[,2]/sum(anova(x)[2:5,2]))*100,digits=4)
+  x.prz <- sapply(x.prz, function(x) ifelse(x < 2e-16, "<2e-16", x))
+  x.anova <- signif((anova(x)[,2]/sum(anova(x)[2:6,2]))*100,digits=4)
   x.anova[1] <- "---"
   x.all <- data.frame(cbind(x.species,x.names,x.coef,x.se,x.zvalue,x.prz,x.anova),stringsAsFactors=FALSE,row.names=NULL) 
   colnames(x.all) <- c("Species","Variable","Coefficient","Std. Error","Z-value","Pr(Z)","ANOVA")
@@ -298,3 +312,17 @@ coll.glm.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
 save(coll.glm.spring, file="output/coll_glm_spring")
+
+###########Spatial Generalized Linear Mixed Model###########
+
+group <- factor(rep("a",nrow(model.data[[1]])))
+model.data <- cbind(model.data[[1]], group)
+attach(model.data)
+
+data.coords <- data.frame("x"=model.data[,x], "y"=model.data[,y])
+coordinates(data.coords) <- ~x+y
+d <- gDistance(data.coords, byid=T)
+min.d <- apply(d, 1, function(x) sort(x[x>0], decreasing=F)[1])
+
+
+model.e <-glmmPQL(coll ~ log(egk) + log(tvol) + I(log(tvol)^2) + log(tspd), random=~1|group, data=model.data, correlation=corExp( form=~x+y), family=binomial(link = "cloglog"))

@@ -15,7 +15,7 @@ sdm.bw = colorRampPalette(c("white","black"))
 plotPal <- c("#94d1c7", "#cccc2b", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#969696", "#bc80bd")
 
 load(file = "data/brt_models_simp")
-load(file = "output/sac")
+load(file = "output/sac_occ")
 
 victoria <- readShapePoly("data/VIC_GDA9455_ADMIN_STATE.shp")
 
@@ -33,7 +33,7 @@ for(i in 1:nrow(species.table)) {
 #plot spatial autocorrelation across all species
 shapes <- unlist(lapply(c("1", "2", "3", "4", "5", "6"), utf8ToInt))
 
-auto <- cbind(auto,"name"=rep(species.names, each=19))
+auto <- cbind(auto.occ,"name"=rep(species.names, each=20))
 
 png("figs/sac.png", bg = "transparent", width = 1100, height = 800, pointsize = 30)
 ggplot(auto,aes(x=x,y=y,group=name,shape=name)) + 

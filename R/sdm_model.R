@@ -4,6 +4,7 @@ require(gbm)
 require(doMC)
 require(dismo)
 require(ggplot2)
+require(foreach)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 
@@ -14,20 +15,60 @@ sdm.bw = colorRampPalette(c("white","black"))
 registerDoMC(detectCores() - 1)
 
   brt.models <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
-    data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+    data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
     set.seed(123)
     model <- gbm.step(data = data, gbm.x = c(4:21), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
     #model <- gbm.step(data = data, gbm.x = c(4:43), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
     model
   }
 save(brt.models, file = "data/brt_models")
+
+brt_deviance_orig <- data.frame("SPP"=rep(NA,nrow(species.table)),"DEV"=rep(NA,nrow(species.table)),"ERR"=rep(NA,nrow(species.table)),"ROC"=rep(NA,nrow(species.table)),"ROCERR"=rep(NA,nrow(species.table)))
+for(i in 1:nrow(species.table)) {
+  brt_deviance_orig[i,"SPP"] <- toupper(paste(species.table[i,2]))
+  brt_deviance_orig[i,"DEV"] <- ((brt.models[i][[1]][["self.statistics"]][["mean.null"]] - brt.models[i][[1]][["cv.statistics"]][["deviance.mean"]])/brt.models[i][[1]][["self.statistics"]][["mean.null"]])*100
+  #brt_deviance_orig[i,"DEV"] <- ((brt.models[i][[1]][["self.statistics"]][["mean.null"]] - brt.models[i][[1]][["cv.statistics"]][["deviance.mean"]])/brt.models[i][[1]][["self.statistics"]][["mean.null"]])*100
+  brt_deviance_orig[i,"ERR"] <- (brt.models[i][[1]][["cv.statistics"]][["deviance.se"]]/brt.models[i][[1]][["self.statistics"]][["mean.null"]])*100
+  #brt_deviance_orig[i,"ERR"] <- (brt.models[i][[1]][["cv.statistics"]][["deviance.se"]]/brt.models[i][[1]][["self.statistics"]][["mean.null"]])*100
+  brt_deviance_orig[i,"ROC"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.mean"]]
+  #brt_deviance_orig[i,"ROC"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.mean"]]
+  brt_deviance_orig[i,"ROCERR"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.se"]]
+  #brt_deviance_orig[i,"ROCERR"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.se"]]
+}
+
 #load(file = "data/brt_models")
-  
+
+#fit BRT models for all species with targeted background
+# registerDoMC(detectCores() - 1)
+# 
+# brt.models.tb <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
+#   data.sp <- data[[i]]
+#   set.seed(123)
+#   model <- gbm.step(data = data.sp, gbm.x = c(4:21), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
+#   #model <- gbm.step(data = data, gbm.x = c(4:43), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
+#   model
+# }
+# save(brt.models.tb, file = "data/brt_models_tb")
+# 
+# brt_deviance_tb <- data.frame("SPP"=rep(NA,nrow(species.table)),"DEV"=rep(NA,nrow(species.table)),"ERR"=rep(NA,nrow(species.table)),"ROC"=rep(NA,nrow(species.table)),"ROCERR"=rep(NA,nrow(species.table)))
+# for(i in 1:nrow(species.table)) {
+#   brt_deviance_tb[i,"SPP"] <- toupper(paste(species.table[i,2]))
+#   brt_deviance_tb[i,"DEV"] <- ((brt.models.tb[i][[1]][["self.statistics"]][["mean.null"]] - brt.models.tb[i][[1]][["cv.statistics"]][["deviance.mean"]])/brt.models.tb[i][[1]][["self.statistics"]][["mean.null"]])*100
+#   #brt_deviance_tb[i,"DEV"] <- ((brt.models[i][[1]][["self.statistics"]][["mean.null"]] - brt.models[i][[1]][["cv.statistics"]][["deviance.mean"]])/brt.models[i][[1]][["self.statistics"]][["mean.null"]])*100
+#   brt_deviance_tb[i,"ERR"] <- (brt.models.tb[i][[1]][["cv.statistics"]][["deviance.se"]]/brt.models.tb[i][[1]][["self.statistics"]][["mean.null"]])*100
+#   #brt_deviance_tb[i,"ERR"] <- (brt.models[i][[1]][["cv.statistics"]][["deviance.se"]]/brt.models[i][[1]][["self.statistics"]][["mean.null"]])*100
+#   brt_deviance_tb[i,"ROC"] <- brt.models.tb[i][[1]][["cv.statistics"]][["discrimination.mean"]]
+#   #brt_deviance_tb[i,"ROC"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.mean"]]
+#   brt_deviance_tb[i,"ROCERR"] <- brt.models.tb[i][[1]][["cv.statistics"]][["discrimination.se"]]
+#   #brt_deviance_tb[i,"ROCERR"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.se"]]
+# }
+
+
 #simplify BRT models and build predictor lists for all species
 registerDoMC(detectCores() - 1)
 
 predlists <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo"), .export=("gbm.step")) %dopar% {
-  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   set.seed(123)
   model.simp <- gbm.simplify(brt.models[[i]])
   preds.no <- which.min(model.simp$deviance.summary$mean)
@@ -38,9 +79,9 @@ save(predlists, file = "data/predlists")
 
 
 for(i in 1:nrow(species.table)) {
-  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   cor <- cor(data[,predlists[[i]]])
-  write.csv(cor, file = paste("data/",species.table[i,2],".cor",sep=""), row.names=FALSE)
+  write.csv(cor, file = paste("data/",species.table[i,2],"_sp.cor",sep=""), row.names=FALSE)
 }
 
 
@@ -48,28 +89,13 @@ for(i in 1:nrow(species.table)) {
 registerDoMC(detectCores() - 1)
 
 brt.models.simp <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
-  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   set.seed(123)
-  model <- gbm.step(data = data, gbm.x = predlists[[i]], gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
+  model <- gbm.step(data = data, gbm.x = predlists[[i]], gbm.y = 3, family = "bernoulli", tree.complexity = 10, learning.rate = 0.01, bag.fraction = 0.5)
   model
 }
 save(brt.models.simp, file = "data/brt_models_simp")
 #load(file = "data/brt_models_simp")
-
-
-#make predictions for all species and create grids
-load(file = "data/vars")
-registerDoMC(detectCores() - 1)
-
-brt.models.output <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo","raster")) %dopar% {
-  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
-  model <- brt.models.simp[[i]]
-  #model <- brt.models[[i]]
-  model.preds <- predict(vars, model, n.trees=model[["gbm.call"]][["best.trees"]], type="response")
-  writeRaster(model.preds, filename=paste("output/",toupper(species.table[i,2]),"_preds_brt.tif",sep=""), format="GTiff", overwrite=TRUE)
-  #plot(model.preds, col=sdm.colors(100), axes=F, box=FALSE)
-  summary(model)
-}
 
 
 #summarize model output data
@@ -88,14 +114,15 @@ for(i in 1:nrow(species.table)) {
 write.csv(brt_deviance, file = "output/brt_devs.csv", row.names=FALSE)
 
 
-grid.files <- list.files(path='data/grids') #Create vector of filenames
-grid.names <- unlist(strsplit(grid.files,"\\."))[(1:(2*(length(grid.files)))*2)-1][1:length(grid.files)]
+#grid.files <- list.files(path='data/grids') #Create vector of filenames
+#grid.names <- unlist(strsplit(grid.files,"\\."))[(1:(2*(length(grid.files)))*2)-1][1:length(grid.files)]
+load(file = "data/vars")
 
-brt_sums <- data.frame(rep(NA,length(grid.names)))
+brt_sums <- data.frame(rep(NA,length(names(vars))))
 colnames(brt_sums) <- c("Predictor")
-brt_sums$Predictor <- grid.names[1:(length(grid.names))]
+brt_sums$Predictor <- names(vars)
 for(i in 1:nrow(species.table)) {
-  x.var <- data.frame(brt.models.output[i],stringsAsFactors=FALSE)
+  x.var <- data.frame(summary(brt.models.simp[[i]]),stringsAsFactors=FALSE)
   x.var[2] <- round(x.var[2],2)
   brt_sums <- merge(brt_sums,x.var,by.x="Predictor",by.y="var",all.x=TRUE)
   colnames(brt_sums)[i+1] <- toupper(paste(species.table[i,2]))
@@ -105,8 +132,8 @@ for(i in 1:nrow(species.table)) {
 
 #check total influence of variables across all species
 nums <- sapply(brt_sums, is.numeric)
-brt_sums$Total <- as.integer(rep(0,length(grid.names)))
-brt_sums$wTotal <- as.integer(rep(0,length(grid.names)))
+brt_sums$Total <- as.integer(rep(0,length(names(vars))))
+brt_sums$wTotal <- as.integer(rep(0,length(names(vars))))
 count <- rowSums(brt_sums!=0)-1
 for(i in 1:nrow(brt_sums)) {
   brt_sums[i,"Total"] <- sum(brt_sums[i, nums])
@@ -130,15 +157,34 @@ print(xtable(brt_sums), include.rownames=FALSE, sanitize.text.function=function(
 write.csv(brt_sums, file = "output/brt_sums.csv", row.names=FALSE)
 
 
+#make predictions for all species and create grids
+#load(file = "data/vars")
+registerDoMC(detectCores() - 1)
+
+brt.models.output <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo","raster")) %dopar% {
+  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
+  #AUTOCOV <- raster(paste0("output/",toupper(species.table[i,2]),"_ac_rast.tif"))
+  #vars <- stack(vars,AUTOCOV)
+  #names(vars)[19] <- "AUTOCOV"
+  model <- brt.models.simp[[i]]
+  #model <- brt.models[[i]]
+  model.preds <- predict(vars, model, n.trees=model[["gbm.call"]][["best.trees"]], type="response")
+  writeRaster(model.preds, filename=paste("output/",toupper(species.table[i,2]),"_preds_brt.tif",sep=""), format="GTiff", overwrite=TRUE)
+  #plot(model.preds, col=sdm.colors(100), axes=F, box=FALSE)
+  summary(model)
+}
+
+
 #calculate spatial autocorrelation across all species
-auto <- foreach(i = 1:nrow(species.table), .packages = c("ncf"), .combine="rbind") %do% {
-  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+auto.occ <- foreach(i = 1:nrow(species.table), .packages = c("ncf"), .combine="rbind") %do% {
+  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   #model <- mget(paste(species.table[i,2],".brt",sep=""))[[paste(species.table[i,2],".brt",sep="")]]
   model <- brt.models.simp[[i]]
   #model <- brt.models[[i]]
   cor <- correlog(data[,1], data[,2], resid(model), increment=1000, resamp=0, latlon=FALSE)
-  temp_df <- data.frame(x=as.numeric(names(cor$correlation[2:20])), y=cor$correlation[2:20], col=rep(toupper(species.table[i,2]), each=length(cor$correlation[2:20])))
+  temp_df <- data.frame(x=as.numeric(names(cor$correlation[1:20])), y=cor$correlation[1:20], col=rep(toupper(species.table[i,2]), each=length(cor$correlation[1:20])))
   temp_df
 } 
-save(auto, file = "output/sac")
-#load(file = "output/sac")
+save(auto.occ, file = "output/sac_occ")
+#load(file = "output/sac_occ")
+
