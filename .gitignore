@@ -7,3 +7,8 @@ data/*
 figs/*
 output/*
 publish/*
+data/brt_models_tb
+data/brt_models
+data/brt_models_simp
+data/coll_model_data
+data/cov_data
