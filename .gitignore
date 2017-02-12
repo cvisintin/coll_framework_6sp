@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+coll_framework_6sp.Rproj
+data/*
+figs/*
+output/*
+publish/*
