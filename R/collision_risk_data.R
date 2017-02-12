@@ -136,13 +136,13 @@ coll <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar%
 #   data[data1, coll := i.coll]
 #   data <- na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
 #   data <- data[!duplicated(data[,.(x,y)]),]
-#   
-#   data$AC <- 0
-#   data[coll==1,AC:=autocov_dist(data[coll==1,coll], as.matrix(data[coll==1,.(x,y)]), nbs=1000, zero.policy=TRUE)]
-#   
+# 
+#   #data$AC <- 0
+#   #data[coll==1,AC:=autocov_dist(data[coll==1,coll], as.matrix(data[coll==1,.(x,y)]), nbs=1000, zero.policy=TRUE)]
+# 
 #   #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=1000, zero.policy=TRUE)
 #   #data <- cbind(data,AC)
-#   
+# 
 #   data
 # }
 

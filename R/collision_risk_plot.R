@@ -116,7 +116,7 @@ dev.off()
 tspd <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data[[i]]
-  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll","AC")
   model <- coll.glm[[i]]
   temp_df <- data.frame(x=data[,tspd], y=invcloglog(cbind(1,mean(log(data[,occ])),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),log(data[,tspd])) %*% coef(model)[1:5]), name=rep(paste(species.names[i]), each=length(data[,tspd])))
   tspd <- rbind(tspd,temp_df)
@@ -423,5 +423,56 @@ ggplot(tspd.all,aes(x=x,y=y,group=interaction(name, season),colour=factor(name),
   theme(text = element_text(size = 10)) +
   scale_x_continuous(breaks=seq(40,110,by=10), expand = c(0, 0), lim=c(40,110)) +
   scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+#guides(colour=FALSE)
+dev.off()
+
+####################For Vic BioCon talk###############
+
+tspd <- NULL
+for (i in 1:nrow(species.table)) {
+  data <- model.data[[i]]
+  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  model <- coll.glm[[i]]
+  temp_df <- data.frame(x=seq(0.01,120,0.1), y=invcloglog(cbind(1,mean(log(data[,occ])),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),log(seq(0.01,120,0.1))) %*% coef(model)[1:5]), name=rep(paste(species.names[i]), each=length(seq(0.01,120,0.1))))
+  tspd <- rbind(tspd,temp_df)
+  rm(data)
+  rm(model)
+  rm(temp_df)
+} 
+
+tspd <- NULL
+for (i in 1:nrow(species.table)) {
+  data <- model.data[[i]]
+  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  data2 <- data.frame(occ=mean(data$occ),tvol=mean(data$tvol),tspd=seq(0.01,120,0.1))
+  colnames(data2) <- c(paste0(species.table[i,2]),"tvol","tspd")
+  model <- coll.glm[[i]]
+  tspd.fit <- predict.glm(model,data2,type="response",se.fit=TRUE)
+  temp_df <- data.frame(x=seq(0.01,120,0.1),y=tspd.fit[["fit"]],ymin=tspd.fit[["fit"]]-1.96*tspd.fit[["se.fit"]],ymax=tspd.fit[["fit"]]+1.96*tspd.fit[["se.fit"]], name=rep(paste(species.names[i]), each=length(seq(0.01,120,0.1))))
+  temp_df$y <- (temp_df$y/(data[coll==1,.N]/nrow(data)))/nrow(data)
+  #temp_df$y <- (temp_df$y - min(temp_df$y)) / (max(temp_df$y) - min(temp_df$y))
+  tspd <- rbind(tspd,temp_df)
+  rm(data)
+  rm(data2)
+  rm(model)
+  rm(temp_df)
+} 
+
+pdf('/home/casey/Research/Projects/VicBioConf/graphics/tspd.pdf', pointsize = 16)
+ggplot(tspd,aes(x=x,y=y,group=name,colour=factor(name))) +
+  geom_line(size=0.3) +
+  ylab("Relative Collision Rate") +
+  xlab("Traffic Speed (km/hour)") +
+  labs(color = "Species") +
+  theme_bw() +
+  theme(legend.key = element_blank(), legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  scale_colour_manual(values=plotPal) +
+  theme(text = element_text(size = 16)) +
+  scale_x_continuous(breaks=seq(0,120,by=20), expand = c(0, 0), lim=c(0,120)) #+
+  #scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
 #guides(colour=FALSE)
 dev.off()

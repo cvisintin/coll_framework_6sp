@@ -34,14 +34,14 @@ load("data/coll_model_data")
 
 registerDoMC(detectCores() - 1)
 coll.glm <- foreach(i = 1:nrow(species.table)) %dopar% {
-  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd) + AC"))
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))# + AC"))
   model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data[[i]])
 }
 save(coll.glm, file="output/coll_glm")
 
 registerDoMC(detectCores() - 1)
 coll.glm.deviance <- foreach(i = 1:nrow(species.table)) %dopar% {
-  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd) + AC"))
+  formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))# + AC"))
   model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data[[i]])
   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
 }
