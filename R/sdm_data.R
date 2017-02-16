@@ -31,7 +31,8 @@ for (i in 1:length(grid.files)) {
   temp <- crop(temp, clip)
   assign(grid.names[i],temp * vic.rst)
 }
-vars <- stack(c(mget(grid.names),"X"=X,"Y"=Y)) #Combine all maps to single stack
+vars <- stack(mget(grid.names)) #Combine all maps to single stack
+#vars <- stack(c(mget(grid.names),"X"=X,"Y"=Y)) #Alternative stack with X Y coords
 save(vars, file = "data/vars")
 
 #vars.cor <- layerStats(vars, 'pearson', na.rm=TRUE)

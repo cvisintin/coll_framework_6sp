@@ -91,7 +91,7 @@ registerDoMC(detectCores() - 1)
 brt.models.simp <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
   data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   set.seed(123)
-  model <- gbm.step(data = data, gbm.x = predlists[[i]], gbm.y = 3, family = "bernoulli", tree.complexity = 10, learning.rate = 0.01, bag.fraction = 0.5)
+  model <- gbm.step(data = data, gbm.x = predlists[[i]], gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
   model
 }
 save(brt.models.simp, file = "data/brt_models_simp")
