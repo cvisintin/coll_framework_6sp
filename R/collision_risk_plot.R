@@ -5,6 +5,7 @@ require(ggplot2)
 require(ncf)
 require(doMC)
 require(data.table)
+require(plyr)
 
 invcloglog <- function (x) {1-exp(-exp(x))}
 
@@ -476,3 +477,278 @@ ggplot(tspd,aes(x=x,y=y,group=name,colour=factor(name))) +
   #scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
 #guides(colour=FALSE)
 dev.off()
+
+###### alternative based on predictions for phd talk######
+
+occ <- NULL
+for (i in 1:nrow(species.table)) {
+  data <- as.data.frame(model.data[[i]])
+  occ.range <- seq(0,1,1/(nrow(data)+1))[-c(1,length(seq(0,1,1/(nrow(data)+1))))]
+  model <- coll.glm[[i]]
+  data2 <- data.frame(occ=occ.range,tvol=mean(data$tvol),tspd=mean(data$tspd),length=1)
+  colnames(data2)[1] <- paste0(species.table[i,2])
+  occ.fit <- predict.glm(model,data2,type="response",se.fit=TRUE)
+  temp_df <- data.frame(x=occ.range,y=occ.fit[["fit"]],ymin=occ.fit[["fit"]]-1.96*occ.fit[["se.fit"]],ymax=occ.fit[["fit"]]+1.96*occ.fit[["se.fit"]],name=rep(paste(species.names[i]), each=nrow(data)))
+  occ <- rbind(occ,temp_df)
+  rm(data)
+  rm(occ.range)
+  rm(model)
+  rm(data2)
+  rm(occ.fit)
+  rm(temp_df)
+}
+
+occ_k <- subset(occ,name=="Eastern Grey Kangaroo")
+
+#pdf('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_occ_k.pdf', pointsize = 20)
+png('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_occ_k.png', pointsize = 16, res=300, width = 1000, height = 900)
+ggplot(occ_k,aes(x=x,y=y,ymin=ymin,ymax=ymax,group=name,colour=name)) +
+  geom_line(size=0.8) +
+  geom_ribbon(alpha=0.3, colour=NA) +
+  ylab("RELATIVE COLLISION RATE") +
+  xlab("LIKELIHOOD OF SPECIES OCCURRENCE") +
+  theme_bw() +
+  theme(legend.key = element_blank()) +
+  theme(legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  scale_colour_manual(values=plotPal) +
+  theme(text = element_text(size = 8)) +
+  scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1))
+dev.off()
+
+#pdf('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_occ.pdf', pointsize = 20)
+png('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_occ.png', pointsize = 16, res=300, width = 1000, height = 900)
+ggplot(occ,aes(x=x,y=y,group=name,colour=name)) +
+  geom_line(size=0.8) +
+  ylab("RELATIVE COLLISION RATE") +
+  xlab("LIKELIHOOD OF SPECIES OCCURRENCE") +
+  theme_bw() +
+  theme(legend.key = element_blank()) +
+  theme(legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  scale_colour_manual(values=plotPal) +
+  theme(text = element_text(size = 8)) +
+  scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1))
+dev.off()
+
+lscale <- rep(1,nrow(species.table))
+
+for (i in 1:nrow(species.table)) {
+  plotPal.mod <- plotPal
+  plotPal.mod[-i] <- "#c0c0c0"
+  lscale.mod <- lscale
+  lscale.mod[-i] <- 0.5
+  occ.mod <- ddply(occ, "name",transform, y=(y-min(y))/(max(y)-min(y)))
+  png(paste0('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_occ_',species.table[i,2],'.png'), pointsize = 16, res=300, width = 1000, height = 900)
+  #pdf(paste0('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_occ_',species.table[i,2],'.pdf'), pointsize = 20)
+  print(
+  ggplot(occ.mod,aes(x=x,y=y,group=name,colour=name,size=name)) +
+    geom_line() +
+    ylab("") +
+    xlab("") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    theme(legend.position="none") +
+    theme(plot.margin=unit(c(.1,.1,.1,.1),"cm")) +
+    theme(axis.title.x = element_blank()) +
+    theme(axis.title.y =element_blank()) +
+    theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+    scale_colour_manual(values=plotPal.mod) +
+    scale_size_manual(values=lscale.mod) + 
+    scale_y_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,1)) +
+    scale_x_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,1))
+  )
+  dev.off()
+  rm(plotPal.mod)
+  rm(lscale.mod)
+  rm(occ.mod)
+}
+
+
+tvol <- NULL
+for (i in 1:nrow(species.table)) {
+  data <- as.data.frame(model.data[[i]])
+  tvol.range <- seq(0,40000,40000/(nrow(data)+1))[-c(1,length(seq(0,40000,40000/(nrow(data)+1))))]
+  model <- coll.glm[[i]]
+  data2 <- data.frame(occ=mean(data[,5]),tvol=tvol.range,tspd=mean(data$tspd),length=1)
+  colnames(data2)[1] <- paste0(species.table[i,2])
+  tvol.fit <- predict.glm(model,data2,type="response",se.fit=TRUE)
+  temp_df <- data.frame(x=tvol.range,y=tvol.fit[["fit"]],ymin=tvol.fit[["fit"]]-1.96*tvol.fit[["se.fit"]],ymax=tvol.fit[["fit"]]+1.96*tvol.fit[["se.fit"]],name=rep(paste(species.names[i]), each=nrow(data)))
+  tvol <- rbind(tvol,temp_df)
+  rm(data)
+  rm(tvol.range)
+  rm(model)
+  rm(data2)
+  rm(tvol.fit)
+  rm(temp_df)
+}
+
+tvol_k <- subset(tvol,name=="Eastern Grey Kangaroo")
+
+#pdf('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tvol_k.pdf', pointsize = 20)
+png('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tvol_k.png', pointsize = 16, res=300, width = 1000, height = 900)
+ggplot(tvol_k,aes(x=x/1000,y=y,ymin=ymin,ymax=ymax,group=name,colour=name)) +
+  geom_line(size=0.8) +
+  geom_ribbon(alpha=0.3, colour=NA) +
+  ylab("RELATIVE COLLISION RATE") +
+  xlab("TRAFFIC VOLUME (1000 VEHICLES/DAY)") +
+  theme_bw() +
+  theme(legend.key = element_blank()) +
+  theme(legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  scale_colour_manual(values=plotPal) +
+  theme(text = element_text(size = 8)) +
+  scale_x_continuous(breaks=seq(0,40,by=5), expand = c(0, 0), lim=c(0,40))
+dev.off()
+
+#pdf('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tvol.pdf', pointsize = 20)
+png('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tvol.png', pointsize = 16, res=300, width = 1000, height = 900)
+ggplot(tvol,aes(x=x/1000,y=y,group=name,colour=name)) +
+  geom_line(size=0.8) +
+  ylab("RELATIVE COLLISION RATE") +
+  xlab("TRAFFIC VOLUME (1000 VEHICLES/DAY)") +
+  theme_bw() +
+  theme(legend.key = element_blank()) +
+  theme(legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  scale_colour_manual(values=plotPal) +
+  theme(text = element_text(size = 8)) +
+  scale_x_continuous(breaks=seq(0,40,by=5), expand = c(0, 0), lim=c(0,40))
+dev.off()
+
+lscale <- rep(1,nrow(species.table))
+
+for (i in 1:nrow(species.table)) {
+  plotPal.mod <- plotPal
+  plotPal.mod[-i] <- "#c0c0c0"
+  lscale.mod <- lscale
+  lscale.mod[-i] <- 0.5
+  tvol.mod <- ddply(tvol, "name",transform, y=(y-min(y))/(max(y)-min(y)))
+  png(paste0('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tvol_',species.table[i,2],'.png'), pointsize = 16, res=300, width = 1000, height = 900)
+  #pdf(paste0('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tvol_',species.table[i,2],'.pdf'), pointsize = 20)
+  print(
+  ggplot(tvol.mod,aes(x=x/1000,y=y,group=name,colour=name,size=name)) +
+    geom_line() +
+    ylab("") +
+    xlab("") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    theme(legend.position="none") +
+    theme(plot.margin=unit(c(.1,.1,.1,.1),"cm")) +
+    theme(axis.title.x = element_blank()) +
+    theme(axis.title.y =element_blank()) +
+    theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+    scale_colour_manual(values=plotPal.mod) +
+    scale_size_manual(values=lscale.mod) + 
+    scale_y_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,1)) +
+    scale_x_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,40))
+  )
+  dev.off()
+  rm(plotPal.mod)
+  rm(lscale.mod)
+  rm(tvol.mod)
+}
+
+
+tspd <- NULL
+for (i in 1:nrow(species.table)) {
+  data <- as.data.frame(model.data[[i]])
+  tspd.range <- tspd.range <- seq(0,110,110/(nrow(data)+1))[-c(1,length(seq(0,110,110/(nrow(data)+1))))]
+  model <- coll.glm[[i]]
+  data2 <- data.frame(occ=mean(data[,5]),tvol=mean(data$tvol),tspd=tspd.range,length=1)
+  colnames(data2)[1] <- paste0(species.table[i,2])
+  tspd.fit <- predict.glm(model,data2,type="response",se.fit=TRUE)
+  temp_df <- data.frame(x=tspd.range,y=tspd.fit[["fit"]],ymin=tspd.fit[["fit"]]-1.96*tspd.fit[["se.fit"]],ymax=tspd.fit[["fit"]]+1.96*tspd.fit[["se.fit"]],name=rep(paste(species.names[i]), each=nrow(data)))
+  tspd <- rbind(tspd,temp_df)
+  rm(data)
+  rm(tspd.range)
+  rm(model)
+  rm(data2)
+  rm(tspd.fit)
+  rm(temp_df)
+}
+
+tspd_k <- subset(tspd,name=="Eastern Grey Kangaroo")
+
+#pdf('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tspd_k.pdf', pointsize = 20)
+png('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tspd_k.png', pointsize = 16, res=300, width = 1000, height = 900)
+ggplot(tspd_k,aes(x=x,y=y,ymin=ymin,ymax=ymax,group=name,colour=name)) +
+  geom_line(size=0.8) +
+  geom_ribbon(alpha=0.3, colour=NA) +
+  ylab("RELATIVE COLLISION RATE") +
+  xlab("TRAFFIC SPEED (KM/HOUR)") +
+  theme_bw() +
+  theme(legend.key = element_blank()) +
+  theme(legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  scale_colour_manual(values=plotPal) +
+  theme(text = element_text(size = 8)) +
+  scale_x_continuous(breaks=seq(0,110,by=10), expand = c(0, 0), lim=c(0,110))
+dev.off()
+
+#pdf('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tspd.pdf', pointsize = 20)
+png('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tspd.png', pointsize = 16, res=300, width = 1000, height = 900)
+ggplot(tspd,aes(x=x,y=y,group=name,colour=name)) +
+  geom_line(size=0.8) +
+  ylab("RELATIVE COLLISION RATE") +
+  xlab("TRAFFIC SPEED (KM/HOUR)") +
+  theme_bw() +
+  theme(legend.key = element_blank()) +
+  theme(legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
+  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+  scale_colour_manual(values=plotPal) +
+  theme(text = element_text(size = 8)) +
+  scale_x_continuous(breaks=seq(0,110,by=10), expand = c(0, 0), lim=c(0,110))
+dev.off()
+
+lscale <- rep(1,nrow(species.table))
+
+for (i in 1:nrow(species.table)) {
+  plotPal.mod <- plotPal
+  plotPal.mod[-i] <- "#c0c0c0"
+  lscale.mod <- lscale
+  lscale.mod[-i] <- 0.5
+  tspd.mod <- ddply(tspd, "name",transform, y=(y-min(y))/(max(y)-min(y)))
+  png(paste0('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tspd_',species.table[i,2],'.png'), pointsize = 16, res=300, width = 1000, height = 900)
+  #pdf(paste0('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/6sp_tspd_',species.table[i,2],'.pdf'), pointsize = 20)
+  print(
+  ggplot(tspd.mod,aes(x=x,y=y,group=name,colour=name,size=name)) +
+    geom_line() +
+    ylab("") +
+    xlab("") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    theme(legend.position="none") +
+    theme(plot.margin=unit(c(.1,.1,.1,.1),"cm")) +
+    theme(axis.title.x = element_blank()) +
+    theme(axis.title.y =element_blank()) +
+    theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+    scale_colour_manual(values=plotPal.mod) +
+    scale_size_manual(values=lscale.mod) + 
+    scale_y_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,1)) +
+    scale_x_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,110))
+  )
+  dev.off()
+  rm(plotPal.mod)
+  rm(lscale.mod)
+  rm(tspd.mod)
+}
+#############################################
