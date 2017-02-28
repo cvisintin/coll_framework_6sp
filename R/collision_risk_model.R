@@ -35,14 +35,14 @@ load("data/coll_model_data")
 registerDoMC(detectCores() - 1)
 coll.glm <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))# + AC"))
-  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data[[i]])
+  model <- glm(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data[[i]])
 }
 save(coll.glm, file="output/coll_glm")
 
 registerDoMC(detectCores() - 1)
 coll.glm.deviance <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))# + AC"))
-  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = model.data[[i]])
+  model <- glm(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data[[i]])
   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
 }
 
@@ -50,12 +50,12 @@ coll.glm.deviance <- foreach(i = 1:nrow(species.table)) %dopar% {
 model.data2 <- model.data
 
 for(i in 1:nrow(species.table)){
-  colnames(model.data2[[i]]) <- c("uid","x","y","occ","tvol","tspd","coll")
+  colnames(model.data2[[i]]) <- c("uid","length","x","y","occ","tvol","tspd","coll")
 }
 
 model.data.all <- do.call(rbind,model.data2)
 
-model <- glm(formula = coll ~ log(occ) + log(tvol) + I(log(tvol)^2) + log(tspd), family=binomial(link = "cloglog"), data = model.data.all[!duplicated(model.data.all$x),])
+model <- glm(formula = coll ~ log(occ) + log(tvol) + I(log(tvol)^2) + log(tspd), offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.all[!duplicated(model.data.all$x),])
 paste("% Deviance Explained: ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
 
 summary(model)
@@ -95,7 +95,7 @@ colnames(glm_sums) <- c("Species","Variable","Coefficient","Std. Error","$Z\\tex
 for (i in 1:nrow(species.table)) {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   data <- model.data[[i]]
-  model <- glm(formula = formula, family = binomial(link = "cloglog"), data = data)
+  model <- glm(formula = formula, offset=log(length*4), family = binomial(link = "cloglog"), data = data)
   #assign(paste(tolower(species.table[i,2]),"coll.glm",sep=""), model)
   #assign(paste(tolower(species.table[i,2]),"coll.summary",sep=""),summary(model))
   #assign(paste(tolower(species.table[i,2]),"coll.coef",sep=""),coef(model))
@@ -188,7 +188,7 @@ registerDoMC(detectCores() - 1)
 coll.val.roc <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   data <- as.data.frame(model.data[[i]])
-  model <- glm(formula = formula, family=binomial(link = "cloglog"), data = data)
+  model <- glm(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = data)
   val.pred.glm <- predict(model, val.data[[i]], type="response")  #Make predictions with regression model fit
   roc(val.data[[i]]$coll, val.pred.glm)  #Compare collision records to predictions using receiver operator characteristic (ROC) function and report value
 }
@@ -215,7 +215,7 @@ registerDoMC(detectCores() - 1)
 glm.preds <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   data <- model.data[[i]]
-  model <- glm(formula = formula, family = binomial(link = "cloglog"), data = data)
+  model <- glm(formula = formula, offset=log(length*4), family = binomial(link = "cloglog"), data = data)
   preds <- predict(model, cov.data, type="response")
   preds
 }
@@ -229,7 +229,7 @@ for(i in 1:nrow(species.table)) {
   rm(x)
 }
 
-dbWriteTable(con, c("gis_victoria", "vic_nogeom_roads_6spcollrisk"), value = coll_preds, row.names=FALSE)
+dbWriteTable(con, c("gis_victoria", "vic_nogeom_roads_6spcollrisk"), value = coll_preds, row.names=FALSE, overwrite=TRUE)
 
 #recode and classify road segment risk based on all species
 coll_risk <- na.omit(data.table(coll_preds))
@@ -264,7 +264,7 @@ load("data/coll_model_data_spr")
 registerDoMC(detectCores() - 1)
 coll.glm.summer <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
 save(coll.glm.summer, file="output/coll_glm_summer")
 
@@ -279,7 +279,7 @@ save(coll.glm.summer, file="output/coll_glm_summer")
 registerDoMC(detectCores() - 1)
 coll.glm.autumn <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
 save(coll.glm.autumn, file="output/coll_glm_autumn")
 
@@ -294,7 +294,7 @@ save(coll.glm.autumn, file="output/coll_glm_autumn")
 registerDoMC(detectCores() - 1)
 coll.glm.winter <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
 save(coll.glm.winter, file="output/coll_glm_winter")
 
@@ -309,7 +309,7 @@ save(coll.glm.winter, file="output/coll_glm_winter")
 registerDoMC(detectCores() - 1)
 coll.glm.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
 save(coll.glm.spring, file="output/coll_glm_spring")
 
