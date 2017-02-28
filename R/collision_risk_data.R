@@ -70,10 +70,10 @@ species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ring
 
 roads <- as.data.table(dbGetQuery(con,"
   SELECT
-    r.uid as uid, ST_X(r.geom) AS x, ST_Y(r.geom) AS y
+    r.uid as uid, r.length AS length, ST_X(r.geom) AS x, ST_Y(r.geom) AS y
   FROM
 	  (SELECT
-      uid, ST_ClosestPoint(geom, ST_Centroid(geom)) AS geom
+      uid, ST_Length(geom)/1000 AS length, ST_ClosestPoint(geom, ST_Centroid(geom)) AS geom
 		FROM
       gis_victoria.vic_gda9455_roads_state) AS r
   "))
@@ -128,23 +128,23 @@ coll <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar%
 }
 
 
-# #construct modelling datasets using all road segments
-# registerDoMC(detectCores() - 1)
-# model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-#   data1 <- coll[[i]]
-#   data <- cov.data
-#   data[data1, coll := i.coll]
-#   data <- na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
-#   data <- data[!duplicated(data[,.(x,y)]),]
-# 
-#   #data$AC <- 0
-#   #data[coll==1,AC:=autocov_dist(data[coll==1,coll], as.matrix(data[coll==1,.(x,y)]), nbs=1000, zero.policy=TRUE)]
-# 
-#   #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=1000, zero.policy=TRUE)
-#   #data <- cbind(data,AC)
-# 
-#   data
-# }
+#construct modelling datasets using all road segments
+registerDoMC(detectCores() - 1)
+model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data1 <- coll[[i]]
+  data <- cov.data
+  data[data1, coll := i.coll]
+  data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+  data <- data[!duplicated(data[,.(x,y)]),]
+
+  #data$AC <- 0
+  #data[coll==1,AC:=autocov_dist(data[coll==1,coll], as.matrix(data[coll==1,.(x,y)]), nbs=1000, zero.policy=TRUE)]
+
+  #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=1000, zero.policy=TRUE)
+  #data <- cbind(data,AC)
+
+  data
+}
 
 #construct modelling datasets using 2x ncoll randomly sampled raods
 registerDoMC(detectCores() - 1)
@@ -156,7 +156,7 @@ model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %
   data.all[data.coll, coll := i.coll]
   data1 <- data.all[coll==1]
   data <- rbind(data0,data1)
-  data <- na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+  data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
   data <- data[!duplicated(data[,.(x,y)]),]
   
   #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=1000, zero.policy=TRUE)
@@ -231,7 +231,7 @@ val.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %do
   data.all[data.coll, coll := i.coll]
   data1 <- data.all[coll==1]
   data <- rbind(data0,data1)
-  data <- na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+  data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
   data <- data[!duplicated(data[,.(x,y)]),]
   #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=80000)
   #data <- cbind(data,AC)
@@ -285,7 +285,7 @@ model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreS
   data1 <- data.all[coll==1]
   
   data <- rbind(data0,data1)
-  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+  na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
 }
 save(model.data.summer, file="data/coll_model_data_sum")
 
@@ -334,7 +334,7 @@ model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreS
   data1 <- data.all[coll==1]
   
   data <- rbind(data0,data1)
-  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+  na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
 }
 save(model.data.autumn, file="data/coll_model_data_aut")
 
@@ -383,7 +383,7 @@ model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreS
   data1 <- data.all[coll==1]
   
   data <- rbind(data0,data1)
-  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+  na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
 }
 save(model.data.winter, file="data/coll_model_data_win")
 
@@ -432,7 +432,7 @@ model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreS
   data1 <- data.all[coll==1]
   
   data <- rbind(data0,data1)
-  na.omit(data[,c(1:3,i+5,4,5,12),with=FALSE])
+  na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
 }
 save(model.data.spring, file="data/coll_model_data_spr")
 
