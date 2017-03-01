@@ -537,7 +537,7 @@ ggplot(occ,aes(x=x,y=y,group=name,colour=name)) +
   scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1))
 dev.off()
 
-lscale <- rep(1,nrow(species.table))
+lscale <- rep(2,nrow(species.table))
 
 for (i in 1:nrow(species.table)) {
   plotPal.mod <- plotPal
@@ -628,7 +628,7 @@ ggplot(tvol,aes(x=x/1000,y=y,group=name,colour=name)) +
   scale_x_continuous(breaks=seq(0,40,by=5), expand = c(0, 0), lim=c(0,40))
 dev.off()
 
-lscale <- rep(1,nrow(species.table))
+lscale <- rep(2,nrow(species.table))
 
 for (i in 1:nrow(species.table)) {
   plotPal.mod <- plotPal
@@ -719,7 +719,7 @@ ggplot(tspd,aes(x=x,y=y,group=name,colour=name)) +
   scale_x_continuous(breaks=seq(0,110,by=10), expand = c(0, 0), lim=c(0,110))
 dev.off()
 
-lscale <- rep(1,nrow(species.table))
+lscale <- rep(2,nrow(species.table))
 
 for (i in 1:nrow(species.table)) {
   plotPal.mod <- plotPal
