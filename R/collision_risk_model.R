@@ -1,14 +1,14 @@
-require(maptools)
+#require(maptools)
 require(raster)
-require(xtable)
-require(R2jags)
-require(ncf)
+#require(xtable)
+#require(R2jags)
+#require(ncf)
 require(doMC)
 require(data.table)
-require(logistf)
+#require(logistf)
 require(RPostgreSQL)
-require(rethinking)
-require(rstan)
+#require(rethinking)
+#require(rstan)
 
 drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
 con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
@@ -95,15 +95,16 @@ colnames(glm_sums) <- c("Species","Variable","Coefficient","Std. Error","$Z\\tex
 for (i in 1:nrow(species.table)) {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   data <- model.data[[i]]
-  model <- glm(formula = formula, offset=log(length*4), family = binomial(link = "cloglog"), data = data)
+  #model <- glm(formula = formula, offset=log(length*4), family = binomial(link = "cloglog"), data = data)
   #assign(paste(tolower(species.table[i,2]),"coll.glm",sep=""), model)
   #assign(paste(tolower(species.table[i,2]),"coll.summary",sep=""),summary(model))
   #assign(paste(tolower(species.table[i,2]),"coll.coef",sep=""),coef(model))
-  x <- model
+  #x <- model
   #assign(paste(tolower(species.table[i,2]),"coll.devexp",sep=""),round(((x$null.deviance - x$deviance)/x$null.deviance)*100,2))
   #assign(paste(tolower(species.table[i,2]),"coll.roc",sep=""),roc(data$coll,x$fitted.values))
   #assign(paste(tolower(species.table[i,2]),"coll.resid",sep=""),resid(x))
   
+  x <- coll.glm[[i]]
   x.names <- c("Intercept", toupper(paste(species.table[i,2])), "TVOL", "TVOL2", "TSPD")
   x.species <- c(paste(species.list[i],sep=""), NA, NA, NA, NA)
   x.coef <- signif(coef(summary(x))[,1],digits=4)
@@ -121,7 +122,7 @@ for (i in 1:nrow(species.table)) {
   
   rm(formula)
   rm(data)
-  rm(model)
+  #rm(model)
   rm(x)
   rm(x.names,x.coef,x.se,x.zvalue,x.prz,x.anova,x.species)
   rm(x.all)
@@ -215,7 +216,7 @@ registerDoMC(detectCores() - 1)
 glm.preds <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
   data <- model.data[[i]]
-  model <- glm(formula = formula, offset=log(length*4), family = binomial(link = "cloglog"), data = data)
+  model <- coll.glm[[i]]
   preds <- predict(model, cov.data, type="response")
   preds
 }
@@ -312,17 +313,3 @@ coll.glm.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
   model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
 save(coll.glm.spring, file="output/coll_glm_spring")
-
-###########Spatial Generalized Linear Mixed Model###########
-
-group <- factor(rep("a",nrow(model.data[[1]])))
-model.data <- cbind(model.data[[1]], group)
-attach(model.data)
-
-data.coords <- data.frame("x"=model.data[,x], "y"=model.data[,y])
-coordinates(data.coords) <- ~x+y
-d <- gDistance(data.coords, byid=T)
-min.d <- apply(d, 1, function(x) sort(x[x>0], decreasing=F)[1])
-
-
-model.e <-glmmPQL(coll ~ log(egk) + log(tvol) + I(log(tvol)^2) + log(tspd), random=~1|group, data=model.data, correlation=corExp( form=~x+y), family=binomial(link = "cloglog"))

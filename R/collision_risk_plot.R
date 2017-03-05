@@ -1,11 +1,11 @@
-require(maptools)
-require(raster)
-require(xtable)
+# require(maptools)
+# require(raster)
+# require(xtable)
 require(ggplot2)
-require(ncf)
-require(doMC)
-require(data.table)
-require(plyr)
+# require(ncf)
+# require(doMC)
+# require(data.table)
+# require(plyr)
 
 invcloglog <- function (x) {1-exp(-exp(x))}
 
@@ -21,7 +21,7 @@ load("output/coll_glm")
 occ <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data[[i]]
-  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","length","x","y","occ","tvol","tspd","coll")
   model <- coll.glm[[i]]
   temp_df <- data.frame(x=data[,occ], y=invcloglog(cbind(1,log(data[,occ]),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),mean(log(data[,tspd]))) %*% coef(model)[1:5]), name=rep(paste(species.names[i]), each=length(data[,occ])))
   occ <- rbind(occ,temp_df)
@@ -44,8 +44,8 @@ ggplot(occ,aes(x=x,y=y,group=name,colour=factor(name))) +
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
   scale_colour_manual(values=plotPal) +
   theme(text = element_text(size = 10)) +
-  scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) +
-  scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+  scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+  #scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
   #guides(colour=FALSE)
 dev.off()
 
@@ -69,7 +69,7 @@ dev.off()
 tvol <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data[[i]]
-  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","length","x","y","occ","tvol","tspd","coll")
   model <- coll.glm[[i]]
   temp_df <- data.frame(x=data[,tvol], y=invcloglog(cbind(1,mean(log(data[,occ])),log(data[,tvol]),(log(data[,tvol]))*(log(data[,tvol])),mean(log(data[,tspd]))) %*% coef(model)[1:5]), name=rep(paste(species.names[i]), each=length(data[,tvol])))
   tvol <- rbind(tvol,temp_df)
@@ -92,8 +92,8 @@ ggplot(tvol,aes(x=x/1000,y=y,group=name,colour=factor(name))) +
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
   scale_colour_manual(values=plotPal) +
   theme(text = element_text(size = 10)) +
-  scale_x_continuous(breaks=seq(0,25,by=5), expand = c(0, 0), lim=c(0,25)) +
-  scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+  scale_x_continuous(breaks=seq(0,25,by=5), expand = c(0, 0), lim=c(0,25)) #+
+  #scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
   #guides(colour=FALSE)
 dev.off()
 
@@ -117,7 +117,7 @@ dev.off()
 tspd <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data[[i]]
-  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll","AC")
+  colnames(data) <- c("uid","length","x","y","occ","tvol","tspd","coll")
   model <- coll.glm[[i]]
   temp_df <- data.frame(x=data[,tspd], y=invcloglog(cbind(1,mean(log(data[,occ])),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),log(data[,tspd])) %*% coef(model)[1:5]), name=rep(paste(species.names[i]), each=length(data[,tspd])))
   tspd <- rbind(tspd,temp_df)
@@ -140,8 +140,8 @@ ggplot(tspd,aes(x=x,y=y,group=name,colour=factor(name))) +
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
   scale_colour_manual(values=plotPal) +
   theme(text = element_text(size = 10)) +
-  scale_x_continuous(breaks=seq(40,110,by=10), expand = c(0, 0), lim=c(40,110)) +
-  scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+  scale_x_continuous(breaks=seq(40,110,by=10), expand = c(0, 0), lim=c(40,110)) #+
+  #scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
   #guides(colour=FALSE)
 dev.off()
 

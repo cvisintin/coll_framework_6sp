@@ -1,10 +1,13 @@
-require(ncf)
+#require(ncf)
 require(xtable)
 require(gbm)
 require(doMC)
 require(dismo)
-require(ggplot2)
+#require(ggplot2)
 require(foreach)
+require(survival)
+require(lattice)
+require(splines)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 
@@ -15,7 +18,8 @@ sdm.bw = colorRampPalette(c("white","black"))
 registerDoMC(detectCores() - 1)
 
   brt.models <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
-    data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
+    data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+    #data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
     set.seed(123)
     model <- gbm.step(data = data, gbm.x = c(4:21), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
     #model <- gbm.step(data = data, gbm.x = c(4:43), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
@@ -36,39 +40,12 @@ for(i in 1:nrow(species.table)) {
   #brt_deviance_orig[i,"ROCERR"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.se"]]
 }
 
-#load(file = "data/brt_models")
-
-#fit BRT models for all species with targeted background
-# registerDoMC(detectCores() - 1)
-# 
-# brt.models.tb <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
-#   data.sp <- data[[i]]
-#   set.seed(123)
-#   model <- gbm.step(data = data.sp, gbm.x = c(4:21), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
-#   #model <- gbm.step(data = data, gbm.x = c(4:43), gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
-#   model
-# }
-# save(brt.models.tb, file = "data/brt_models_tb")
-# 
-# brt_deviance_tb <- data.frame("SPP"=rep(NA,nrow(species.table)),"DEV"=rep(NA,nrow(species.table)),"ERR"=rep(NA,nrow(species.table)),"ROC"=rep(NA,nrow(species.table)),"ROCERR"=rep(NA,nrow(species.table)))
-# for(i in 1:nrow(species.table)) {
-#   brt_deviance_tb[i,"SPP"] <- toupper(paste(species.table[i,2]))
-#   brt_deviance_tb[i,"DEV"] <- ((brt.models.tb[i][[1]][["self.statistics"]][["mean.null"]] - brt.models.tb[i][[1]][["cv.statistics"]][["deviance.mean"]])/brt.models.tb[i][[1]][["self.statistics"]][["mean.null"]])*100
-#   #brt_deviance_tb[i,"DEV"] <- ((brt.models[i][[1]][["self.statistics"]][["mean.null"]] - brt.models[i][[1]][["cv.statistics"]][["deviance.mean"]])/brt.models[i][[1]][["self.statistics"]][["mean.null"]])*100
-#   brt_deviance_tb[i,"ERR"] <- (brt.models.tb[i][[1]][["cv.statistics"]][["deviance.se"]]/brt.models.tb[i][[1]][["self.statistics"]][["mean.null"]])*100
-#   #brt_deviance_tb[i,"ERR"] <- (brt.models[i][[1]][["cv.statistics"]][["deviance.se"]]/brt.models[i][[1]][["self.statistics"]][["mean.null"]])*100
-#   brt_deviance_tb[i,"ROC"] <- brt.models.tb[i][[1]][["cv.statistics"]][["discrimination.mean"]]
-#   #brt_deviance_tb[i,"ROC"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.mean"]]
-#   brt_deviance_tb[i,"ROCERR"] <- brt.models.tb[i][[1]][["cv.statistics"]][["discrimination.se"]]
-#   #brt_deviance_tb[i,"ROCERR"] <- brt.models[i][[1]][["cv.statistics"]][["discrimination.se"]]
-# }
-
-
 #simplify BRT models and build predictor lists for all species
 registerDoMC(detectCores() - 1)
 
 predlists <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo"), .export=("gbm.step")) %dopar% {
-  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  #data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   set.seed(123)
   model.simp <- gbm.simplify(brt.models[[i]])
   preds.no <- which.min(model.simp$deviance.summary$mean)
@@ -79,9 +56,11 @@ save(predlists, file = "data/predlists")
 
 
 for(i in 1:nrow(species.table)) {
-  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  #data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   cor <- cor(data[,predlists[[i]]])
-  write.csv(cor, file = paste("data/",species.table[i,2],"_sp.cor",sep=""), row.names=FALSE)
+  write.csv(cor, file = paste("data/",species.table[i,2],".cor",sep=""), row.names=FALSE)
+  #write.csv(cor, file = paste("data/",species.table[i,2],"_sp.cor",sep=""), row.names=FALSE)
 }
 
 
@@ -89,7 +68,8 @@ for(i in 1:nrow(species.table)) {
 registerDoMC(detectCores() - 1)
 
 brt.models.simp <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo")) %dopar% {
-  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  #data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   set.seed(123)
   model <- gbm.step(data = data, gbm.x = predlists[[i]], gbm.y = 3, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
   model
@@ -162,7 +142,8 @@ write.csv(brt_sums, file = "output/brt_sums.csv", row.names=FALSE)
 registerDoMC(detectCores() - 1)
 
 brt.models.output <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dismo","raster")) %dopar% {
-  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  #data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   #AUTOCOV <- raster(paste0("output/",toupper(species.table[i,2]),"_ac_rast.tif"))
   #vars <- stack(vars,AUTOCOV)
   #names(vars)[19] <- "AUTOCOV"
@@ -177,7 +158,8 @@ brt.models.output <- foreach(i = 1:nrow(species.table), .packages = c("gbm","dis
 
 #calculate spatial autocorrelation across all species
 auto.occ <- foreach(i = 1:nrow(species.table), .packages = c("ncf"), .combine="rbind") %do% {
-  data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
+  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+  #data <- read.delim(paste("data/",species.table[i,2],"_sp.data",sep=""), header=T, sep=",")
   #model <- mget(paste(species.table[i,2],".brt",sep=""))[[paste(species.table[i,2],".brt",sep="")]]
   model <- brt.models.simp[[i]]
   #model <- brt.models[[i]]

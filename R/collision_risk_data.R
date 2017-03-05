@@ -1,16 +1,18 @@
-require(maptools)
+# require(maptools)
 require(raster)
-require(ggplot2)
-require(xtable)
-require(R2jags)
-require(ncf)
+# require(ggplot2)
+# require(xtable)
+# require(R2jags)
+# require(ncf)
 require(doMC)
 require(data.table)
 require(RPostgreSQL)
-require(spdep)
-require(spatstat)
-require(rgeos)
-require(sp)
+require(foreach)
+require(iterators)
+# require(spdep)
+# require(spatstat)
+# require(rgeos)
+# require(sp)
 
 drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
 con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
@@ -180,13 +182,13 @@ save(model.data, file="data/coll_model_data")
 
 
 #construct metadata for all species
-coll_data <- data.frame("SPP"=rep(NA,nrow(species.table)),"CR_N"=rep(NA,nrow(species.table)),"CR_P"=rep(NA,nrow(species.table)),"CR_A"=rep(NA,nrow(species.table)))
+coll_data <- data.frame("SPP"=rep(NA,nrow(species.table)),"CR_N"=rep(NA,nrow(species.table)),"CR_P"=rep(NA,nrow(species.table)),"CR_B"=rep(NA,nrow(species.table)))
 for(i in 1:nrow(species.table)) {
   coll_data[i,"SPP"] <- toupper(paste(species.table[i,2]))
   data <- model.data[[i]]
   coll_data[i,"CR_N"] <- data[,.N]
   coll_data[i,"CR_P"] <- data[coll==1,.N]
-  coll_data[i,"CR_A"] <- data[coll==0,.N]
+  coll_data[i,"CR_B"] <- data[coll==0,.N]
   rm(data)
 }
 write.csv(coll_data, file = "data/coll_data_meta.csv", row.names=FALSE)
