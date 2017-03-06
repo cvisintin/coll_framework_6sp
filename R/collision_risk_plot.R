@@ -208,7 +208,7 @@ load("output/coll_glm_spring")
 occ.summer <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data.summer[[i]]
-  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","length","x","y","occ","tvol","tspd","coll")
   model <- coll.glm.summer[[i]]
   temp_df <- data.frame(x=data[,occ], y=invcloglog(cbind(1,log(data[,occ]),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),mean(log(data[,tspd]))) %*% coef(model)), name=rep(paste(species.names[i]), each=length(data[,occ])))
   occ.summer <- rbind(occ.summer,temp_df)
@@ -221,7 +221,7 @@ occ.summer <- cbind(occ.summer,season="summer")
 occ.autumn <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data.autumn[[i]]
-  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","length","x","y","occ","tvol","tspd","coll")
   model <- coll.glm.autumn[[i]]
   temp_df <- data.frame(x=data[,occ], y=invcloglog(cbind(1,log(data[,occ]),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),mean(log(data[,tspd]))) %*% coef(model)), name=rep(paste(species.names[i]), each=length(data[,occ])))
   occ.autumn <- rbind(occ.autumn,temp_df)
@@ -235,7 +235,7 @@ occ.autumn <- cbind(occ.autumn,season="autumn")
 occ.winter <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data.winter[[i]]
-  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","length","x","y","occ","tvol","tspd","coll")
   model <- coll.glm.winter[[i]]
   temp_df <- data.frame(x=data[,occ], y=invcloglog(cbind(1,log(data[,occ]),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),mean(log(data[,tspd]))) %*% coef(model)), name=rep(paste(species.names[i]), each=length(data[,occ])))
   occ.winter <- rbind(occ.winter,temp_df)
@@ -248,7 +248,7 @@ occ.winter <- cbind(occ.winter,season="winter")
 occ.spring <- NULL
 for (i in 1:nrow(species.table)) {
   data <- model.data.spring[[i]]
-  colnames(data) <- c("uid","x","y","occ","tvol","tspd","coll")
+  colnames(data) <- c("uid","length","x","y","occ","tvol","tspd","coll")
   model <- coll.glm.spring[[i]]
   temp_df <- data.frame(x=data[,occ], y=invcloglog(cbind(1,log(data[,occ]),mean(log(data[,tvol])),mean((log(data[,tvol]))*(log(data[,tvol]))),mean(log(data[,tspd]))) %*% coef(model)), name=rep(paste(species.names[i]), each=length(data[,occ])))
   occ.spring <- rbind(occ.spring,temp_df)
@@ -274,8 +274,8 @@ ggplot(occ.all,aes(x=x,y=y,group=interaction(name, season),colour=factor(name),s
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
   scale_colour_manual(values=plotPal) +
   theme(text = element_text(size = 10)) +
-  scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) +
-  scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+  scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
+  #scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
 #guides(colour=FALSE)
 dev.off()
 

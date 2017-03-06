@@ -1,5 +1,6 @@
 require(maptools)
 require(ggplot2)
+require(gbm)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 
@@ -63,14 +64,14 @@ for (i in 1:nrow(species.table)) {
   rm(values)
 }  
 
-tiff('figs/tempanrange.tif', pointsize = 11, compression = "lzw", res=300, width = 900, height = 900)
+tiff('figs/tempanrange.tif', pointsize = 11, compression = "lzw", res=300, width = 1500, height = 900)
 ggplot(tempanrange,aes(x=x,y=y,group=name,colour=name)) + 
   geom_line(size=0.3) +  
   ylab("Occurence (Pr)") + 
   xlab(expression(paste("Annual Range of Temperature (",degree,"C)",sep=""))) + 
   labs(color = "Species") + 
   theme_bw() + 
-  theme(legend.key = element_blank(), legend.position="none") + 
+  theme(legend.key = element_blank()) + 
   theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
   theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
   theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
@@ -146,35 +147,35 @@ dev.off()
 
 
 #plot effect of greenness for all species
-green <- NULL
-for (i in 1:nrow(species.table)) {
-  data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
-  model <- brt.models.simp[[i]]
-  values <- plot.gbm(model, i.var="GREEN",return.grid=TRUE, type="response")
-  colnames(values) <- c("x","y")
-  values$name <- as.factor(rep(paste(species.names[i]), each=length(values[,2])))
-  green <- rbind(green,values)
-  rm(data)
-  rm(model)
-  rm(values)
-}  
-
-tiff('figs/green.tif', pointsize = 11, compression = "lzw", res=300, width = 1500, height = 900)
-ggplot(green,aes(x=x,y=y,group=name,colour=name)) + 
-  geom_line(size=0.3) + 
-  ylab("Occurence (Pr)") + 
-  xlab("Seasonal Change in Vegetation Greenness") + 
-  labs(color = "Species") + 
-  theme_bw() + 
-  theme(legend.key = element_blank()) +
-  theme(plot.margin=unit(c(.5,0,.1,.1),"cm")) +
-  theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
-  theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
-  theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
-  scale_colour_manual(values=plotPal) +
-  theme(text = element_text(size = 11)) +
-  scale_x_continuous(expand = c(0, 0), lim=c(-0.3,0.5))
-dev.off()
+# green <- NULL
+# for (i in 1:nrow(species.table)) {
+#   data <- read.delim(paste("data/",species.table[i,2],".data",sep=""), header=T, sep=",")
+#   model <- brt.models.simp[[i]]
+#   values <- plot.gbm(model, i.var="GREEN",return.grid=TRUE, type="response")
+#   colnames(values) <- c("x","y")
+#   values$name <- as.factor(rep(paste(species.names[i]), each=length(values[,2])))
+#   green <- rbind(green,values)
+#   rm(data)
+#   rm(model)
+#   rm(values)
+# }  
+# 
+# tiff('figs/green.tif', pointsize = 11, compression = "lzw", res=300, width = 1500, height = 900)
+# ggplot(green,aes(x=x,y=y,group=name,colour=name)) + 
+#   geom_line(size=0.3) + 
+#   ylab("Occurence (Pr)") + 
+#   xlab("Seasonal Change in Vegetation Greenness") + 
+#   labs(color = "Species") + 
+#   theme_bw() + 
+#   theme(legend.key = element_blank()) +
+#   theme(plot.margin=unit(c(.5,0,.1,.1),"cm")) +
+#   theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+#   theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+#   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+#   scale_colour_manual(values=plotPal) +
+#   theme(text = element_text(size = 11)) +
+#   scale_x_continuous(expand = c(0, 0), lim=c(-0.3,0.5))
+# dev.off()
 
 
 # #plot effect of elevation for all species

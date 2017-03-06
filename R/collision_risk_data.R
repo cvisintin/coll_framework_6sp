@@ -21,13 +21,6 @@ grid.files <- list.files(path="output/",pattern="\\_preds_brt.tif")
 grid.names <- unlist(strsplit(grid.files,"\\_preds_brt."))[(1:(2*(length(grid.files)))*2)-1][1:length(grid.files)]
 
 vic.rst <- raster("data/VIC_GDA9455_GRID_STATE_1000.tif")
-# vic.mat <- as.matrix(vic.rst)
-# vic.mat <- vic.mat[nrow(vic.mat):1, ]
-# vic.mat[!is.finite(vic.mat)] <- 0
-# vic.mat2 <- matrix(FALSE,nrow=563,ncol=822)
-# vic.mat2[] <- as.logical(vic.mat)
-# 
-# vic.win <- owin(xrange=c(-58,764), yrange=c(5661,6224), units=c("metre","metres"), mask=vic.mat2)
 
 clip <- extent(-58000, 764000, 5661000, 6224000)
 
@@ -39,36 +32,9 @@ for (i in 1:length(grid.files)) {
 sdm.vars <- stack(mget(grid.names))
 
 rm(list = grid.names)
-# rm(vic.rst, vic.mat,vic.mat2)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Black Swamp Wallaby","Common Wombat","Koala")
-
-#############Build linear network of roads################
-# road.net <- dbGetQuery(con,"
-#   SELECT
-#     uid, ST_AsText(geom) as geom
-#   FROM
-#       gis_victoria.vic_gda9455_roads_state
-#   ")
-# 
-# spl <- SpatialLines(
-#     lapply(1:nrow(road.net), function(i) {
-#       (rgeos::readWKT(road.net[i, "geom"], id=road.net[i, "uid"]))@lines[[1]]
-#     }), proj4string = CRS("+init=epsg:28355")
-# )
-# 
-# vic.ppp <- as.ppp(as.psp.SpatialLines(spl))
-# marks(vic.ppp) <- NULL
-# 
-# rm(spl)
-# 
-# edge <- cbind(1:(length(vic.ppp$x)-1),2:length(vic.ppp$x))
-# 
-# vic.linnet <- linnet(vic.ppp, edges=edge)
-# 
-# rm(edge)
-##############################################
 
 roads <- as.data.table(dbGetQuery(con,"
   SELECT
@@ -138,13 +104,6 @@ model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %
   data[data1, coll := i.coll]
   data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
   data <- data[!duplicated(data[,.(x,y)]),]
-
-  #data$AC <- 0
-  #data[coll==1,AC:=autocov_dist(data[coll==1,coll], as.matrix(data[coll==1,.(x,y)]), nbs=1000, zero.policy=TRUE)]
-
-  #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=1000, zero.policy=TRUE)
-  #data <- cbind(data,AC)
-
   data
 }
 
@@ -160,22 +119,6 @@ model.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %
   data <- rbind(data0,data1)
   data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
   data <- data[!duplicated(data[,.(x,y)]),]
-  
-  #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=1000, zero.policy=TRUE)
-  
-  #vic.ppp <- ppp(data[,x]/1000,data[,y]/1000, window=vic.win, marks=data[,coll])
-  #vic.idw <- idw(vic.ppp)
-  #rast_idw <- raster(as.SpatialGridDataFrame.im(vic.idw))
-  #rast_idw <- setExtent(rast_idw, extent(-58000, 764000, 5661000, 6224000))
-  #proj4string(rast_idw) <- CRS("+init=epsg:28355")
-  #AC <- extract(rast_idw, cbind(data[,x], data[,y]))
-  
-  #vic.ppp <- as.ppp(SpatialPoints(data[,.(x,y)], window=vic.win, proj4string=CRS("+init=epsg:28355")))
-  #marks(vic.ppp) <- data[,7]
-  #vic.lpp <- lpp(vic.ppp, vic.linnet)
-  #AC <- nndist(vic.lpp)
-  
-  #data <- cbind(data,AC)
   data
 }
 save(model.data, file="data/coll_model_data")
@@ -221,6 +164,24 @@ coll.ind <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %do
   )
   setkey(data,uid)
   unique(data)
+}
+
+#construct validation datasets using all road segments
+registerDoMC(detectCores() - 1)
+val.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data1 <- coll.ind[[i]]
+  data <- cov.data
+  data[data1, coll := i.coll]
+  data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+  data <- data[!duplicated(data[,.(x,y)]),]
+  
+  #data$AC <- 0
+  #data[coll==1,AC:=autocov_dist(data[coll==1,coll], as.matrix(data[coll==1,.(x,y)]), nbs=1000, zero.policy=TRUE)]
+  
+  #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=1000, zero.policy=TRUE)
+  #data <- cbind(data,AC)
+  
+  data
 }
 
 #construct validation datasets using 2x ncoll randomly sampled raods
@@ -289,6 +250,17 @@ model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreS
   data <- rbind(data0,data1)
   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
 }
+
+registerDoMC(detectCores() - 1)
+model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data1 <- coll.summer[[i]]
+  data <- cov.data
+  data[data1, coll := i.coll]
+  data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+  data <- data[!duplicated(data[,.(x,y)]),]
+  data
+}
+
 save(model.data.summer, file="data/coll_model_data_sum")
 
 
@@ -338,6 +310,17 @@ model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreS
   data <- rbind(data0,data1)
   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
 }
+
+registerDoMC(detectCores() - 1)
+model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data1 <- coll.autumn[[i]]
+  data <- cov.data
+  data[data1, coll := i.coll]
+  data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+  data <- data[!duplicated(data[,.(x,y)]),]
+  data
+}
+
 save(model.data.autumn, file="data/coll_model_data_aut")
 
 
@@ -387,6 +370,17 @@ model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreS
   data <- rbind(data0,data1)
   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
 }
+
+registerDoMC(detectCores() - 1)
+model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data1 <- coll.winter[[i]]
+  data <- cov.data
+  data[data1, coll := i.coll]
+  data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+  data <- data[!duplicated(data[,.(x,y)]),]
+  data
+}
+
 save(model.data.winter, file="data/coll_model_data_win")
 
 
@@ -436,6 +430,17 @@ model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreS
   data <- rbind(data0,data1)
   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
 }
+
+registerDoMC(detectCores() - 1)
+model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+  data1 <- coll.spring[[i]]
+  data <- cov.data
+  data[data1, coll := i.coll]
+  data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+  data <- data[!duplicated(data[,.(x,y)]),]
+  data
+}
+
 save(model.data.spring, file="data/coll_model_data_spr")
 
 
