@@ -238,18 +238,18 @@ coll.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) 
   unique(data)
 }
 
-registerDoMC(detectCores() - 1)
-model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-  data.coll <- coll.summer[[i]]
-  set.seed(123)
-  data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
-  data.all <- cov.data
-  data.all[data.coll, coll := i.coll]
-  data1 <- data.all[coll==1]
-  
-  data <- rbind(data0,data1)
-  na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
-}
+# registerDoMC(detectCores() - 1)
+# model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+#   data.coll <- coll.summer[[i]]
+#   set.seed(123)
+#   data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
+#   data.all <- cov.data
+#   data.all[data.coll, coll := i.coll]
+#   data1 <- data.all[coll==1]
+#   
+#   data <- rbind(data0,data1)
+#   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+# }
 
 registerDoMC(detectCores() - 1)
 model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
@@ -298,18 +298,18 @@ coll.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) 
   unique(data)
 }
 
-registerDoMC(detectCores() - 1)
-model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-  data.coll <- coll.autumn[[i]]
-  set.seed(123)
-  data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
-  data.all <- cov.data
-  data.all[data.coll, coll := i.coll]
-  data1 <- data.all[coll==1]
-  
-  data <- rbind(data0,data1)
-  na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
-}
+# registerDoMC(detectCores() - 1)
+# model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+#   data.coll <- coll.autumn[[i]]
+#   set.seed(123)
+#   data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
+#   data.all <- cov.data
+#   data.all[data.coll, coll := i.coll]
+#   data1 <- data.all[coll==1]
+#   
+#   data <- rbind(data0,data1)
+#   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+# }
 
 registerDoMC(detectCores() - 1)
 model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
@@ -358,18 +358,18 @@ coll.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) 
   unique(data)
 }
 
-registerDoMC(detectCores() - 1)
-model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-  data.coll <- coll.winter[[i]]
-  set.seed(123)
-  data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
-  data.all <- cov.data
-  data.all[data.coll, coll := i.coll]
-  data1 <- data.all[coll==1]
-  
-  data <- rbind(data0,data1)
-  na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
-}
+# registerDoMC(detectCores() - 1)
+# model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+#   data.coll <- coll.winter[[i]]
+#   set.seed(123)
+#   data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
+#   data.all <- cov.data
+#   data.all[data.coll, coll := i.coll]
+#   data1 <- data.all[coll==1]
+#   
+#   data <- rbind(data0,data1)
+#   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+# }
 
 registerDoMC(detectCores() - 1)
 model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
@@ -418,18 +418,18 @@ coll.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) 
   unique(data)
 }
 
-registerDoMC(detectCores() - 1)
-model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-  data.coll <- coll.spring[[i]]
-  set.seed(123)
-  data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
-  data.all <- cov.data
-  data.all[data.coll, coll := i.coll]
-  data1 <- data.all[coll==1]
-  
-  data <- rbind(data0,data1)
-  na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
-}
+# registerDoMC(detectCores() - 1)
+# model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
+#   data.coll <- coll.spring[[i]]
+#   set.seed(123)
+#   data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
+#   data.all <- cov.data
+#   data.all[data.coll, coll := i.coll]
+#   data1 <- data.all[coll==1]
+#   
+#   data <- rbind(data0,data1)
+#   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
+# }
 
 registerDoMC(detectCores() - 1)
 model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {

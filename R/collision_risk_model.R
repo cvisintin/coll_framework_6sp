@@ -5,7 +5,8 @@ require(raster)
 #require(ncf)
 require(doMC)
 require(data.table)
-require(logistf)
+#require(logistf)
+require(brglm)
 require(RPostgreSQL)
 require(PresenceAbsence)
 #require(rethinking)
@@ -166,7 +167,6 @@ coll.val.tss <- foreach(i = 1:nrow(species.table)) %dopar% {
 }
 write.csv(coll.val.tss, file = "output/coll_ind_tss.csv", row.names=FALSE)
 
-
 #combine all validation data to assess all species model
 # val.data2 <- val.data
 # 
@@ -203,84 +203,65 @@ for(i in 1:nrow(species.table)) {
 
 dbWriteTable(con, c("gis_victoria", "vic_nogeom_roads_6spcollrisk"), value = coll_preds, row.names=FALSE, overwrite=TRUE)
 
-#recode and classify road segment risk based on all species
-coll_risk <- na.omit(data.table(coll_preds))
-setkey(coll_risk,UID,EGK,BTP,RTP,BSW,WOM,KOA)
+#calculate portions of roads that are within top 1% of risk for each species - same for all species
+prop_risk <- coll_preds
 
-coll_risk_tot <- coll_risk
+n <- .1
 
-threshold <- 0.75
+for(i in 1:nrow(species.table)) {
+  x <- coll_preds[,i+1]
+  x[x >= quantile(x,prob=1-n/100, na.rm = TRUE)] <- 1
+  x[!(x >= quantile(x,prob=1-n/100, na.rm = TRUE))] <- 0
+  prop_risk[,i+1] <- x
+}
 
-coll_risk_tot[, TOTAL := rowSums(.SD>=threshold), .SDcols = c("EGK","BTP","RTP","BSW","WOM","KOA")]
+prop_risk$sums <- rowSums(prop_risk[,-1])
 
-coll_risk_tot[,.N,by=TOTAL]
+sum(na.omit(prop_risk$sums[prop_risk$sums>0]))
+sum(na.omit(prop_risk$sums[prop_risk$sums>1]))
+sum(na.omit(prop_risk$sums[prop_risk$sums>2]))
+sum(na.omit(prop_risk$sums[prop_risk$sums>3]))
+sum(na.omit(prop_risk$sums[prop_risk$sums>4]))
+sum(na.omit(prop_risk$sums[prop_risk$sums>5]))
 
-assign(paste0("coll_risk_",threshold*100), coll_risk_tot[,.(UID,TOTAL)])
+######Models by season######
 
-write.csv(get(paste0("coll_risk_",threshold*100)), file = paste0("output/coll_risk_",threshold*100,".csv"), row.names=FALSE)
-
-
-#model based on seasons
 load("data/coll_model_data_sum")
-load("data/coll_model_data_aut")
-load("data/coll_model_data_win")
-load("data/coll_model_data_spr")
-
-# registerDoMC(detectCores() - 1)
-# coll.glm.deviance.summer <- foreach(i = 1:nrow(species.table)) %dopar% {
-#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-#   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.summer[[i]])
-#   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-# }
-
-registerDoMC(detectCores() - 1)
+registerDoMC(6)
 coll.glm.summer <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- brglm(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
 }
 save(coll.glm.summer, file="output/coll_glm_summer")
+rm(coll.glm.summer)
+rm(model.data.summer)
 
-
-# registerDoMC(detectCores() - 1)
-# coll.glm.deviance.autumn <- foreach(i = 1:nrow(species.table)) %dopar% {
-#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-#   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.autumn[[i]])
-#   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-# }
-
-registerDoMC(detectCores() - 1)
+load("data/coll_model_data_aut")
+registerDoMC(6)
 coll.glm.autumn <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- brglm(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.autumn[[i]])
 }
 save(coll.glm.autumn, file="output/coll_glm_autumn")
+rm(coll.glm.autumn)
+rm(model.data.autumn)
 
-
-# registerDoMC(detectCores() - 1)
-# coll.glm.deviance.winter <- foreach(i = 1:nrow(species.table)) %dopar% {
-#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-#   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.winter[[i]])
-#   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-# }
-
-registerDoMC(detectCores() - 1)
+load("data/coll_model_data_win")
+registerDoMC(6)
 coll.glm.winter <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- brglm(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.winter[[i]])
 }
 save(coll.glm.winter, file="output/coll_glm_winter")
+rm(coll.glm.winter)
+rm(model.data.winter)
 
-
-# registerDoMC(detectCores() - 1)
-# coll.glm.deviance.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
-#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-#   model <- logistf(formula = formula, family=binomial(link = "cloglog"), data = model.data.spring[[i]])
-#   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-# }
-
-registerDoMC(detectCores() - 1)
+load("data/coll_model_data_spr")
+registerDoMC(6)
 coll.glm.spring <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  model <- logistf(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.summer[[i]])
+  model <- brglm(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.spring[[i]])
 }
 save(coll.glm.spring, file="output/coll_glm_spring")
+rm(coll.glm.spring)
+rm(model.data.spring)

@@ -32,21 +32,27 @@ shapes <- unlist(lapply(c("1", "2", "3", "4", "5", "6"), utf8ToInt))
 
 auto <- cbind(auto.occ,"name"=rep(species.names, each=20))
 
-png("figs/sac.png", bg = "transparent", width = 1100, height = 800, pointsize = 30)
-ggplot(auto,aes(x=x,y=y,group=name,shape=name)) + 
-  geom_line(colour=c("grey70"),size=.75) + 
-  geom_point(size=4) + 
-  ylab("Moran's I") + 
-  xlab("Distance (km)") + 
-  labs(shape = "Species") + 
-  theme_bw() + 
-  theme(legend.key = element_blank()) +
-  theme(text = element_text(size = 20)) +
-  scale_colour_manual(values=plotPal) + 
-  scale_shape_manual(values=shapes) + 
-  geom_hline(aes(yintercept=0), linetype=2) + 
-  scale_x_continuous(breaks=seq(1, 20, 1))
-dev.off()
+for(i in species.names) {
+  tiff(paste0('figs/sac_',c('a','b','c','d','e','f')[which(species.names==i)],'.tif'), pointsize = 12, compression = "lzw", res=300, width = 900, height = 900)
+  print(
+    ggplot(auto[auto$name==i,],aes(x=x,y=y,group=name,shape=name)) + 
+      geom_line(colour=c("grey70"),size=.5) + 
+      geom_point(size=1) + 
+      ylab("Moran's I") + 
+      xlab("Distance (km)") +
+      labs(title = i) +
+      theme_bw() +
+      theme(legend.key = element_blank(),legend.position = 'none') +
+      theme(plot.margin=unit(c(.5,.1,.1,.1),"cm")) +
+      theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
+      theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
+      theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+      theme(text = element_text(size = 8)) +
+      geom_hline(aes(yintercept=0), linetype=2) + 
+      scale_x_continuous(breaks=seq(1, 20, 1))
+  )
+  dev.off()
+}
 
 
 #plot effect of annual temperature range for all species
