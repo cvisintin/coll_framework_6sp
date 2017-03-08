@@ -5,7 +5,7 @@ require(ggplot2)
 # require(ncf)
 # require(doMC)
 require(data.table)
-# require(plyr)
+require(plyr)
 
 invcloglog <- function (x) {1-exp(-exp(x))}
 
@@ -34,15 +34,15 @@ for (i in 1:nrow(species.table)) {
   rm(temp_df)
 }
 
-tiff('figs/occ_a.tif', pointsize = 16, compression = "lzw", res=300, width = 1400, height = 900)
+tiff('figs/occ_a.tif', pointsize = 16, compression = "lzw", res=300, width = 900, height = 900)
 ggplot(occ,aes(x=x,y=y,group=name,colour=factor(name))) +
   geom_line(size=0.5) +
   ylab("Relative Collision Rate") +
   xlab("Likelihood of Species Occurrence") +
   labs(color = "Species") +
   theme_bw() +
-  theme(legend.key = element_blank()) +
-  theme(plot.margin=unit(c(.5,.1,.1,.1),"cm")) +
+  theme(legend.key = element_blank(), legend.position="none") +
+  theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
   theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
   theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
@@ -50,6 +50,38 @@ ggplot(occ,aes(x=x,y=y,group=name,colour=factor(name))) +
   theme(text = element_text(size = 8)) +
   scale_x_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1))
 dev.off()
+
+lscale <- rep(2,nrow(species.table))
+
+for (i in 1:nrow(species.table)) {
+  plotPal.mod <- plotPal
+  plotPal.mod[-i] <- "#c0c0c0"
+  lscale.mod <- lscale
+  lscale.mod[-i] <- 0.5
+  occ.mod <- ddply(occ, "name",transform, y=(y-min(y))/(max(y)-min(y)))
+  tiff(paste0('figs/occ_a_',species.table[i,2],'.tif'), pointsize = 16, res=300, width = 900, height = 900)
+  print(
+    ggplot(occ.mod,aes(x=x,y=y,group=name,colour=name,size=name)) +
+      geom_line() +
+      ylab("") +
+      xlab("") +
+      theme_bw() +
+      theme(legend.key = element_blank()) +
+      theme(legend.position="none") +
+      theme(plot.margin=unit(c(.1,.1,.1,.1),"cm")) +
+      theme(axis.title.x = element_blank()) +
+      theme(axis.title.y =element_blank()) +
+      theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+      scale_colour_manual(values=plotPal.mod) +
+      scale_size_manual(values=lscale.mod) + 
+      scale_y_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,1)) +
+      scale_x_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,1))
+  )
+  dev.off()
+  rm(plotPal.mod)
+  rm(lscale.mod)
+  rm(occ.mod)
+}
 
 
 tvol <- NULL
@@ -85,6 +117,38 @@ ggplot(tvol,aes(x=x/1000,y=y,group=name,colour=factor(name))) +
   scale_x_continuous(breaks=seq(0,40,by=5), expand = c(0, 0), lim=c(0,40))
 dev.off()
 
+lscale <- rep(2,nrow(species.table))
+
+for (i in 1:nrow(species.table)) {
+  plotPal.mod <- plotPal
+  plotPal.mod[-i] <- "#c0c0c0"
+  lscale.mod <- lscale
+  lscale.mod[-i] <- 0.5
+  tvol.mod <- ddply(tvol, "name",transform, y=(y-min(y))/(max(y)-min(y)))
+  tiff(paste0('figs/tvol_b_',species.table[i,2],'.tif'), pointsize = 16, res=300, width = 900, height = 900)
+  print(
+    ggplot(tvol.mod,aes(x=x/1000,y=y,group=name,colour=name,size=name)) +
+      geom_line() +
+      ylab("") +
+      xlab("") +
+      theme_bw() +
+      theme(legend.key = element_blank()) +
+      theme(legend.position="none") +
+      theme(plot.margin=unit(c(.1,.1,.1,.1),"cm")) +
+      theme(axis.title.x = element_blank()) +
+      theme(axis.title.y =element_blank()) +
+      theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+      scale_colour_manual(values=plotPal.mod) +
+      scale_size_manual(values=lscale.mod) + 
+      scale_y_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,1)) +
+      scale_x_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,40))
+  )
+  dev.off()
+  rm(plotPal.mod)
+  rm(lscale.mod)
+  rm(tvol.mod)
+}
+
 
 tspd <- NULL
 for (i in 1:nrow(species.table)) {
@@ -119,27 +183,39 @@ ggplot(tspd,aes(x=x,y=y,group=name,colour=factor(name))) +
   scale_x_continuous(breaks=seq(0,110,by=10), expand = c(0, 0), lim=c(0,110))
 dev.off()
 
-# tiff('figs/tspd_k.tif', pointsize = 12, compression = "lzw", res=300, width = 900, height = 900)
-# ggplot(tspd[occ$name==species.names[1],],aes(x=x,y=y)) +
-#   geom_line(size=0.3, colour=plotPal[1]) +
-#   ylab("Likelihood of Collision") +
-#   xlab("Traffic Speed (km/hour)") +
-#   theme_bw() +
-#   theme(legend.key = element_blank(), legend.position="none") +
-#   theme(plot.margin=unit(c(.5,.5,.1,.1),"cm")) +
-#   theme(axis.title.x = element_text(margin=unit(c(.3,0,0,0),"cm"))) +
-#   theme(axis.title.y = element_text(margin=unit(c(0,.3,0,0),"cm"))) +
-#   theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
-#   theme(text = element_text(size = 10)) +
-#   scale_x_continuous(breaks=seq(40,110,by=10), expand = c(0, 0), lim=c(40,110)) +
-#   scale_y_continuous(breaks=seq(0,1,by=.1), expand = c(0, 0), lim=c(0,1)) #+
-# #guides(colour=FALSE)
-# dev.off()
+lscale <- rep(2,nrow(species.table))
 
-#calculate spatial autocorrelation across all species
+for (i in 1:nrow(species.table)) {
+  plotPal.mod <- plotPal
+  plotPal.mod[-i] <- "#c0c0c0"
+  lscale.mod <- lscale
+  lscale.mod[-i] <- 0.5
+  tspd.mod <- ddply(tspd, "name",transform, y=(y-min(y))/(max(y)-min(y)))
+  tiff(paste0('figs/tspd_c_',species.table[i,2],'.tif'), pointsize = 16, res=300, width = 900, height = 900)
+  print(
+    ggplot(tspd.mod,aes(x=x,y=y,group=name,colour=name,size=name)) +
+      geom_line() +
+      ylab("") +
+      xlab("") +
+      theme_bw() +
+      theme(legend.key = element_blank()) +
+      theme(legend.position="none") +
+      theme(plot.margin=unit(c(.1,.1,.1,.1),"cm")) +
+      theme(axis.title.x = element_blank()) +
+      theme(axis.title.y =element_blank()) +
+      theme(panel.grid.major = element_line(size=0.1),panel.grid.minor = element_line(size=0.1)) +
+      scale_colour_manual(values=plotPal.mod) +
+      scale_size_manual(values=lscale.mod) + 
+      scale_y_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,1)) +
+      scale_x_continuous(breaks=NULL, expand = c(0, 0), lim=c(0,110))
+  )
+  dev.off()
+  rm(plotPal.mod)
+  rm(lscale.mod)
+  rm(tspd.mod)
+}
 
-#nb.list <- dnearneigh(as.matrix(data[,.(x,y)]), 0, 1000)
-#nb.weights <- nb2listw(nb.list, zero.policy=TRUE)
+
 registerDoMC(detectCores() - 1)
 
 auto.resid <- foreach(i = 1:nrow(species.table), .packages = c("ncf"), .combine="rbind") %dopar% {
