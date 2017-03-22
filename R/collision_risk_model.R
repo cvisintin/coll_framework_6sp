@@ -1,6 +1,6 @@
 #require(maptools)
 require(raster)
-#require(xtable)
+require(xtable)
 #require(R2jags)
 #require(ncf)
 require(doMC)
@@ -28,7 +28,7 @@ con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres1
 }
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
-species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Black Swamp Wallaby","Common Wombat","Koala")
+species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Swamp Wallaby","Common Wombat","Koala")
 
 load("data/coll_model_data")
 
@@ -62,24 +62,26 @@ coll.glm.deviance <- foreach(i = 1:nrow(species.table)) %dopar% {
 # 
 # summary(model)
 
-#model data with glm and summarize model output data (for word table)
+#model data with glm and summarize model output data
 glm_sums <- data.frame(character(),character(),numeric(),numeric(),numeric(),numeric(),numeric(),stringsAsFactors=FALSE,row.names=NULL)
 colnames(glm_sums) <- c("Species","Variable","Coefficient","Std. Error","$Z\\text{-value}$","$\\PRZ$","ANOVA")
 for (i in 1:nrow(species.table)) {
   x <- coll.glm[[i]]
   x2 <- anova(x)
-  x.names <- c("Intercept", toupper(paste(species.table[i,2])), "TVOL", "TVOL2", "TSPD")
+  x.names <- c("Intercept", toupper(paste(species.table[i,2])), "TVOL", "TVOL$^2$", "TSPD")
+  #x.names <- c("Intercept", toupper(paste(species.table[i,2])), "TVOL", "TVOL2", "TSPD")
   x.species <- c(paste(species.list[i],sep=""), NA, NA, NA, NA)
   x.coef <- signif(coef(summary(x))[,1],digits=4)
   x.se <- signif(coef(summary(x))[,2],digits=4)
   x.zvalue <- signif(coef(summary(x))[,3],digits=4)
   x.prz <- signif(coef(summary(x))[,4],digits=2)
-  x.prz <- sapply(x.prz, function(x) ifelse(x < .001, "<.001*", x))
+  x.prz <- sapply(x.prz, function(x) ifelse(x < .001, "$<$.001*", x))
+  #x.prz <- sapply(x.prz, function(x) ifelse(x < .001, "<.001*", x))
   x.anova <- signif((x2[,2]/sum(x2[2:5,2]))*100,digits=4)
   x.anova[1] <- "---"
   x.all <- data.frame(cbind(x.species,x.names,x.coef,x.se,x.zvalue,x.prz,x.anova),stringsAsFactors=FALSE,row.names=NULL) 
   colnames(x.all) <- c("Species","Variable","Coefficient","Std. Error","Z-value","Pr(Z)","ANOVA")
-  
+
   newrow = rep(NA,length(x.all))
   glm_sums <- rbind(glm_sums, x.all, newrow)
 
@@ -90,45 +92,7 @@ for (i in 1:nrow(species.table)) {
   rm(newrow)
 }
 
-#model data with glm and summarize model output data (for latex table)
-# glm_sums <- data.frame(character(),character(),numeric(),numeric(),numeric(),numeric(),numeric(),stringsAsFactors=FALSE,row.names=NULL)
-# colnames(glm_sums) <- c("Species","Variable","Coefficient","Std. Error","$Z\\text{-value}$","$\\PRZ$","ANOVA")
-# for (i in 1:nrow(species.table)) {
-#   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-#   data <- model.data[[i]]
-#   model <- glm(formula = formula, family = binomial(link = "cloglog"), data = data)
-#   assign(paste(tolower(species.table[i,2]),"coll.glm",sep=""), model)
-#   assign(paste(tolower(species.table[i,2]),"coll.summary",sep=""),summary(model))
-#   assign(paste(tolower(species.table[i,2]),"coll.coef",sep=""),coef(model))
-#   x <- model
-#   assign(paste(tolower(species.table[i,2]),"coll.devexp",sep=""),round(((x$null.deviance - x$deviance)/x$null.deviance)*100,2))
-#   assign(paste(tolower(species.table[i,2]),"coll.roc",sep=""),roc(data$coll,x$fitted.values))
-#   assign(paste(tolower(species.table[i,2]),"coll.resid",sep=""),resid(x))
-#   
-#   x.names <- c("Intercept", toupper(paste(species.table[i,2])), "TVOL", "TVOL$^2$", "TSPD")
-#   x.species <- c(paste(species.list[i],sep=""), NA, NA, NA, NA)
-#   x.coef <- signif(coef(summary(x))[,1],digits=4)
-#   x.se <- signif(coef(summary(x))[,2],digits=4)
-#   x.zvalue <- signif(coef(summary(x))[,3],digits=4)
-#   x.prz <- signif(coef(summary(x))[,4],digits=2)
-#   x.prz <- sapply(x.prz, function(x) ifelse(x < 2e-16, 2e-16, x))
-#   x.anova <- signif((anova(x)[,2]/sum(anova(x)[2:5,2]))*100,digits=4)
-#   x.anova[1] <- "---"
-#   x.all <- data.frame(cbind(x.species,x.names,x.coef,x.se,x.zvalue,x.prz,x.anova),stringsAsFactors=FALSE,row.names=NULL) 
-#   colnames(x.all) <- c("Species","Variable","Coefficient","Std. Error","$Z\\text{-value}$","$\\PRZ$","ANOVA")
-#   
-#   newrow = rep(NA,length(x.all))
-#   glm_sums <- rbind(glm_sums, x.all, newrow)
-#   
-#   rm(formula)
-#   rm(data)
-#   rm(model)
-#   rm(x)
-#   rm(x.names,x.coef,x.se,x.zvalue,x.prz,x.anova,x.species)
-#   rm(x.all)
-#   rm(newrow)
-# }
-# print(xtable(glm_sums), include.rownames=FALSE, sanitize.text.function=function(x){x}, floating=FALSE)
+#print(xtable(glm_sums), include.rownames=FALSE, sanitize.text.function=function(x){x}, floating=FALSE)
 
 write.csv(glm_sums, file = "output/glm_sums.csv", row.names=FALSE)
 

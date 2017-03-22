@@ -9,7 +9,7 @@ drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
 con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
-species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Black Swamp Wallaby","Common Wombat","Koala")
+species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Swamp Wallaby","Common Wombat","Koala")
 
 registerDoMC(detectCores() - 1)
 coll.temp1 <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL"), .combine=rbind) %dopar% {

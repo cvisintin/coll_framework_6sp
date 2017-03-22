@@ -34,7 +34,7 @@ sdm.vars <- stack(mget(grid.names))
 rm(list = grid.names)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
-species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Black Swamp Wallaby","Common Wombat","Koala")
+species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Swamp Wallaby","Common Wombat","Koala")
 
 roads <- as.data.table(dbGetQuery(con,"
   SELECT

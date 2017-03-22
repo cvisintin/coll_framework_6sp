@@ -13,7 +13,7 @@ plotPal <- c("#94d1c7", "#cccc2b", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",", stringsAsFactors = F)
 
-species.names <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Black Swamp Wallaby","Common Wombat","Koala")
+species.names <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Swamp Wallaby","Common Wombat","Koala")
 
 #load("data/coll_model_data")
 load("output/coll_glm")

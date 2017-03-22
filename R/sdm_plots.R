@@ -4,7 +4,7 @@ require(gbm)
 
 species.table <- read.delim("data/species_list.csv", header=T, sep=",")
 
-species.names <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Black Swamp Wallaby","Common Wombat","Koala")
+species.names <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ringtail Possum","Swamp Wallaby","Common Wombat","Koala")
 
 sdm.colors = colorRampPalette(c("white","red"))
 sdm.bw = colorRampPalette(c("white","black"))
