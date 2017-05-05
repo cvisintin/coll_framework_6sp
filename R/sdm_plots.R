@@ -72,7 +72,7 @@ for (i in 1:nrow(species.table)) {
 
 tiff('figs/tempanrange.tif', pointsize = 11, compression = "lzw", res=300, width = 1500, height = 900)
 ggplot(tempanrange,aes(x=x,y=y,group=name,colour=name)) + 
-  geom_line(size=0.3) +  
+  geom_line(size=0.75) +  
   ylab("Occurence (Pr)") + 
   xlab(expression(paste("Annual Range of Temperature (",degree,"C)",sep=""))) + 
   labs(color = "Species") + 
@@ -104,7 +104,7 @@ for (i in 1:nrow(species.table)) {
 
 tiff('figs/light.tif', pointsize = 11, compression = "lzw", res=300, width = 900, height = 900)
 ggplot(light,aes(x=x,y=y,group=name,colour=name)) + 
-  geom_line(size=0.3) + 
+  geom_line(size=0.75) + 
   ylab("Occurence (Pr)") + 
   xlab("Artificial Light (relative)") + 
   labs(color = "Species") + 
@@ -136,7 +136,7 @@ for (i in 1:nrow(species.table)) {
 
 tiff('figs/precdm.tif', pointsize = 11, compression = "lzw", res=300, width = 900, height = 900)
 ggplot(precdm,aes(x=x,y=y,group=name,colour=name)) + 
-  geom_line(size=0.3) + 
+  geom_line(size=0.75) + 
   ylab("Occurence (Pr)") + 
   xlab("Precipitation of Driest Month (mm)") + 
   labs(color = "Species") + 
