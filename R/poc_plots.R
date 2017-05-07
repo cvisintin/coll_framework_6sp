@@ -1,5 +1,3 @@
-
-
 calibplot <- function(pred, negrug, posrug, ideal, ylim=c(0,1), xlim=c(0,1), capuci=TRUE, xlabel = "Predicted probability of presence", filename=NULL, title="Calibration plot", ...) {
   if (!is.null(filename)) png(filename)
   ylow <- pred$y - 2 * pred$se

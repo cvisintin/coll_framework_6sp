@@ -1,18 +1,9 @@
-# require(maptools)
 require(raster)
-# require(ggplot2)
-# require(xtable)
-# require(R2jags)
-# require(ncf)
 require(doMC)
 require(data.table)
 require(RPostgreSQL)
 require(foreach)
 require(iterators)
-# require(spdep)
-# require(spatstat)
-# require(rgeos)
-# require(sp)
 
 drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
 con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
@@ -60,7 +51,6 @@ sdm.preds <- foreach(i = 1:nrow(species.table), .packages = c("raster")) %dopar%
 }
 
 for(i in 1:nrow(species.table)){
-  #cov.data[,paste0(species.table[i,2]):=raster::extract(sdm.preds[[i]],cov.data[,.(x,y)])]
   set(cov.data, ,paste0(species.table[i,2]), raster::extract(sdm.preds[[i]],cov.data[,.(x,y)]))
 }
 
@@ -174,13 +164,6 @@ val.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %do
   data[data1, coll := i.coll]
   data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
   data <- data[!duplicated(data[,.(x,y)]),]
-  
-  #data$AC <- 0
-  #data[coll==1,AC:=autocov_dist(data[coll==1,coll], as.matrix(data[coll==1,.(x,y)]), nbs=1000, zero.policy=TRUE)]
-  
-  #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=1000, zero.policy=TRUE)
-  #data <- cbind(data,AC)
-  
   data
 }
 
@@ -196,8 +179,6 @@ val.data <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %do
   data <- rbind(data0,data1)
   data <- na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
   data <- data[!duplicated(data[,.(x,y)]),]
-  #AC <- autocov_dist(data[,coll], as.matrix(data[,.(x,y)]), nbs=80000)
-  #data <- cbind(data,AC)
   data
 }
 
@@ -237,19 +218,6 @@ coll.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) 
   setkey(data,uid)
   unique(data)
 }
-
-# registerDoMC(detectCores() - 1)
-# model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-#   data.coll <- coll.summer[[i]]
-#   set.seed(123)
-#   data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
-#   data.all <- cov.data
-#   data.all[data.coll, coll := i.coll]
-#   data1 <- data.all[coll==1]
-#   
-#   data <- rbind(data0,data1)
-#   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
-# }
 
 registerDoMC(detectCores() - 1)
 model.data.summer <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
@@ -298,18 +266,6 @@ coll.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) 
   unique(data)
 }
 
-# registerDoMC(detectCores() - 1)
-# model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-#   data.coll <- coll.autumn[[i]]
-#   set.seed(123)
-#   data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
-#   data.all <- cov.data
-#   data.all[data.coll, coll := i.coll]
-#   data1 <- data.all[coll==1]
-#   
-#   data <- rbind(data0,data1)
-#   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
-# }
 
 registerDoMC(detectCores() - 1)
 model.data.autumn <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
@@ -358,18 +314,6 @@ coll.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) 
   unique(data)
 }
 
-# registerDoMC(detectCores() - 1)
-# model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-#   data.coll <- coll.winter[[i]]
-#   set.seed(123)
-#   data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
-#   data.all <- cov.data
-#   data.all[data.coll, coll := i.coll]
-#   data1 <- data.all[coll==1]
-#   
-#   data <- rbind(data0,data1)
-#   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
-# }
 
 registerDoMC(detectCores() - 1)
 model.data.winter <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
@@ -418,18 +362,6 @@ coll.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) 
   unique(data)
 }
 
-# registerDoMC(detectCores() - 1)
-# model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
-#   data.coll <- coll.spring[[i]]
-#   set.seed(123)
-#   data0 <- cov.data[sample(seq(1:nrow(cov.data)),2*nrow(data.coll))]
-#   data.all <- cov.data
-#   data.all[data.coll, coll := i.coll]
-#   data1 <- data.all[coll==1]
-#   
-#   data <- rbind(data0,data1)
-#   na.omit(data[,c(1:4,i+6,5,6,13),with=FALSE])
-# }
 
 registerDoMC(detectCores() - 1)
 model.data.spring <- foreach(i = 1:nrow(species.table), .packages = c("RPostgreSQL")) %dopar% {
@@ -447,9 +379,7 @@ save(model.data.spring, file="data/coll_model_data_spr")
 #calculate spatial autocorrelation in data
 auto.coll.data <- foreach(i = 1:nrow(species.table), .packages = c("ncf")) %do% {
   data <- model.data[[i]]
-  #model <- mget(paste(species.table[i,2],".brt",sep=""))[[paste(species.table[i,2],".brt",sep="")]]
   model <- coll.glm[[i]]
-  #model <- brt.models[[i]]
   cor <- correlog(data[,x], data[,y], data[,coll], increment=1000, resamp=0, latlon=FALSE)
   temp_df <- data.frame(x=as.numeric(names(cor$correlation[1:100])), y=cor$correlation[1:100])
   temp_df

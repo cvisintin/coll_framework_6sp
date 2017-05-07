@@ -1,20 +1,13 @@
-#require(maptools)
 require(raster)
 require(xtable)
-#require(R2jags)
-#require(ncf)
 require(doMC)
 require(data.table)
-#require(logistf)
 require(brglm)
 require(RPostgreSQL)
 require(PresenceAbsence)
-#require(rethinking)
-#require(rstan)
 
 drv <- dbDriver("PostgreSQL")  #Specify a driver for postgreSQL type database
 con <- dbConnect(drv, dbname="qaeco_spatial", user="qaeco", password="Qpostgres15", host="boab.qaeco.com", port="5432")  #Connection to database server on Boab
-
 
 "roc" <- function (obsdat, preddat) {
     if (length(obsdat) != length(preddat)) 
@@ -32,8 +25,6 @@ species.list <- c("Eastern Grey Kangaroo","Common Brushtail Possum","Common Ring
 
 load("data/coll_model_data")
 
-#model.data2 <- lapply(model.data, function(x) x[coll==0,AC:=0])
-
 registerDoMC(detectCores() - 1)
 coll.glm <- foreach(i = 1:nrow(species.table)) %dopar% {
   formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))# + AC"))
@@ -48,20 +39,6 @@ coll.glm.deviance <- foreach(i = 1:nrow(species.table)) %dopar% {
   paste("% Deviance Explained ",species.table[i,2],": ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
 }
 
-#combine all datasets for glm model
-# model.data2 <- model.data
-# 
-# for(i in 1:nrow(species.table)){
-#   colnames(model.data2[[i]]) <- c("uid","length","x","y","occ","tvol","tspd","coll")
-# }
-# 
-# model.data.all <- do.call(rbind,model.data2)
-# 
-# model <- glm(formula = coll ~ log(occ) + log(tvol) + I(log(tvol)^2) + log(tspd), offset=log(length*4), family=binomial(link = "cloglog"), data = model.data.all[!duplicated(model.data.all$x),])
-# paste("% Deviance Explained: ",round(((model$null.deviance - model$deviance)/model$null.deviance)*100,2),sep="")
-# 
-# summary(model)
-
 #model data with glm and summarize model output data
 glm_sums <- data.frame(character(),character(),numeric(),numeric(),numeric(),numeric(),numeric(),stringsAsFactors=FALSE,row.names=NULL)
 colnames(glm_sums) <- c("Species","Variable","Coefficient","Std. Error","$Z\\text{-value}$","$\\PRZ$","ANOVA")
@@ -69,14 +46,12 @@ for (i in 1:nrow(species.table)) {
   x <- coll.glm[[i]]
   x2 <- anova(x)
   x.names <- c("Intercept", toupper(paste(species.table[i,2])), "TVOL", "TVOL$^2$", "TSPD")
-  #x.names <- c("Intercept", toupper(paste(species.table[i,2])), "TVOL", "TVOL2", "TSPD")
   x.species <- c(paste(species.list[i],sep=""), NA, NA, NA, NA)
   x.coef <- signif(coef(summary(x))[,1],digits=4)
   x.se <- signif(coef(summary(x))[,2],digits=4)
   x.zvalue <- signif(coef(summary(x))[,3],digits=4)
   x.prz <- signif(coef(summary(x))[,4],digits=2)
   x.prz <- sapply(x.prz, function(x) ifelse(x < .001, "$<$.001*", x))
-  #x.prz <- sapply(x.prz, function(x) ifelse(x < .001, "<.001*", x))
   x.anova <- signif((x2[,2]/sum(x2[2:5,2]))*100,digits=4)
   x.anova[1] <- "---"
   x.all <- data.frame(cbind(x.species,x.names,x.coef,x.se,x.zvalue,x.prz,x.anova),stringsAsFactors=FALSE,row.names=NULL) 
@@ -97,24 +72,11 @@ for (i in 1:nrow(species.table)) {
 write.csv(glm_sums, file = "output/glm_sums.csv", row.names=FALSE)
 
 
-#construct model performance table
-# coll_deviance <- data.frame("SPP"=rep(NA,nrow(species.table)),"DEV"=rep(NA,nrow(species.table)),"ROC"=rep(NA,nrow(species.table)))
-# for(i in 1:nrow(species.table)) {
-#   coll_deviance[i,"SPP"] <- toupper(paste(species.table[i,2]))
-#   coll_deviance[i,"DEV"] <- get(paste(species.table[i,2],"coll.devexp",sep=""))
-#   coll_deviance[i,"ROC"] <- get(paste(species.table[i,2],"coll.roc",sep=""))
-# }
-# write.csv(coll_deviance, file = "output/coll_devs.csv", row.names=FALSE)
-
-
 #Validate model fit with independent data
 load("data/coll_val_data")
 
 registerDoMC(detectCores() - 1)
 coll.val.roc <- foreach(i = 1:nrow(species.table)) %dopar% {
-  #formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  #data <- as.data.frame(model.data[[i]])
-  #model <- glm(formula = formula, offset=log(length*4), family=binomial(link = "cloglog"), data = data)
   val.pred.glm <- predict(coll.glm[[i]], val.data[[i]], type="response")  #Make predictions with regression model fit
   roc(val.data[[i]]$coll, val.pred.glm)  #Compare collision records to predictions using receiver operator characteristic (ROC) function and report value
 }
@@ -131,27 +93,12 @@ coll.val.tss <- foreach(i = 1:nrow(species.table)) %dopar% {
 }
 write.csv(coll.val.tss, file = "output/coll_ind_tss.csv", row.names=FALSE)
 
-#combine all validation data to assess all species model
-# val.data2 <- val.data
-# 
-# for(i in 1:nrow(species.table)){
-#   colnames(val.data2[[i]]) <- c("uid","x","y","occ","tvol","tspd","coll")
-# }
-# 
-# val.data.all <- do.call(rbind,val.data2)
-# 
-# val.pred.glm <- predict(model, val.data.all[!duplicated(val.data.all$x),], type="response")  #Make predictions with regression model fit
-# roc(val.data.all[!duplicated(val.data.all$x),coll], val.pred.glm)  #Compare collision records to predictions using receiver operator characteristic (ROC) function and report value
-
 
 #make predictions based on models
 load("data/cov_data")
 
 registerDoMC(detectCores() - 1)
 glm.preds <- foreach(i = 1:nrow(species.table)) %dopar% {
-  #formula <- as.formula(paste0("coll ~ log(",species.table[i,2],") + log(tvol) + I(log(tvol)^2) + log(tspd)"))
-  #data <- model.data[[i]]
-  #model <- coll.glm[[i]]
   preds <- predict(coll.glm[[i]], cov.data, type="response")
   preds
 }

@@ -1,9 +1,4 @@
-# require(maptools)
-# require(raster)
-# require(xtable)
 require(ggplot2)
-# require(ncf)
-# require(doMC)
 require(data.table)
 require(plyr)
 

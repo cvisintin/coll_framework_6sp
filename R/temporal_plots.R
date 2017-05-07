@@ -54,8 +54,6 @@ coll.temporal <- rbind(coll.temp1,coll.temp2)
 setkey(coll.temporal,name)
 
 for (i in 1:nrow(species.table)) {
-  #data <- coll.temporal
-  #data$hour <- data$hour - 1
   png(paste0('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/',species.table[i,2],'_coll_hour.png'), pointsize = 16, res=300, width = 1000, height = 900)
   print(
     ggplot(coll.temporal[name==paste0(species.table[i,2]),.N,by='hour'],aes(x=hour,y=N)) +
@@ -76,8 +74,6 @@ for (i in 1:nrow(species.table)) {
 }
 
 for (i in 1:nrow(species.table)) {
-  #data <- coll.temporal
-  #data$hour <- data$hour - 1
   png(paste0('/home/casey/Research/Projects/PhD_Thesis/completion_talk/graphics/',species.table[i,2],'_coll_month.png'), pointsize = 16, res=300, width = 1000, height = 900)
   print(
   ggplot(coll.temporal[name==paste0(species.table[i,2]),.N,by='month'],aes(x=month,y=N)) +
